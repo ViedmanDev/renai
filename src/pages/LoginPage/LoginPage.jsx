@@ -1,20 +1,8 @@
-import { Route, Routes } from "react-router-dom";
-import LoginPage from "./pages/LoginPage/LoginPage";
-import HomePage from "./pages/HomePage/HomePage";
+import "./LoginPage.css";
 
-const App = () => {
+function LoginPage() {
   return (
-    <Routes>
-      <Route path="/" element={<LoginPage></LoginPage>}></Route>
-      <Route path="/Home" element={<HomePage></HomePage>}></Route>
-    </Routes>
-  );
-};
-
-export default App;
-
-{
-  /* <div className="login-container">
+    <div className="login-container">
       <h2 className="form-title">Login</h2>
       <form action="" className="login-form">
         Email
@@ -57,5 +45,8 @@ export default App;
           Continue con Apple
         </button>
       </div>
-    </div>*/
+    </div>
+  );
 }
+
+export default LoginPage;
