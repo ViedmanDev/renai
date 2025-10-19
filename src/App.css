@@ -1,0 +1,5 @@
+.social-icon {
+  width: 50px; /* ajusta el tamaño horizontal */
+  height: 50px; /* ajusta el tamaño vertical */
+  object-fit: contain; /* mantiene la proporción */
+}
