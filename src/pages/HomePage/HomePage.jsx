@@ -1,7 +1,7 @@
 import "./HomePage.css";
 
 function HomePage() {
-  return <div>HomePage</div>;
+  return <div className="home-container">HomePage</div>;
 }
 
 export default HomePage;
