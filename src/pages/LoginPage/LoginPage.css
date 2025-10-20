@@ -148,3 +148,7 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
+.title-login {
+  text-align: center;
+  padding: 2rem;
+}
