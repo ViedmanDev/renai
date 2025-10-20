@@ -1,39 +1,8 @@
-<<<<<<< HEAD
-{
-/*import Navbar from "./Navbar";
+import "./LoginPage.css";
 
-const App = () => {
+function LoginPage() {
   return (
-    <div>
-      <Navbar />
-      <main className="p-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-        <p className="text-gray-500 mt-2">..................</p>
-      </main>
-    </div>
-  );
-};
-
-export default App */
-}
-
-import { Route, Routes } from "react-router-dom";
-import LoginPage from "./pages/LoginPage/LoginPage";
-import HomePage from "./pages/HomePage/HomePage";
-
-const App = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<LoginPage></LoginPage>}></Route>
-      <Route path="/Home" element={<HomePage></HomePage>}></Route>
-    </Routes>
-  );
-};
-
-export default App;
-
-
-   <div className="login-container">
+    <div className="login-container">
       <h2 className="form-title">Login</h2>
       <form action="" className="login-form">
         Email
@@ -77,4 +46,7 @@ export default App;
         </button>
       </div>
     </div>
-origin/main
+  );
+}
+
+export default LoginPage;
