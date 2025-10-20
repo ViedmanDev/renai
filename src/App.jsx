@@ -1,80 +1,21 @@
-<<<<<<< HEAD
-{
-/*import Navbar from "./Navbar";
-
-const App = () => {
-  return (
-    <div>
-      <Navbar />
-      <main className="p-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Dashboard</h2>
-        <p className="text-gray-500 mt-2">..................</p>
-      </main>
-    </div>
-  );
-};
-
-export default App */
-}
-
 import { Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import HomePage from "./pages/HomePage/HomePage";
+import Layout from "./layout/Layout";
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<LoginPage></LoginPage>}></Route>
-      <Route path="/Home" element={<HomePage></HomePage>}></Route>
+      {/* Página sin layout */}
+      <Route path="/" element={<LoginPage />} />
+
+      {/* Páginas que sí tienen header/footer */}
+      <Route element={<Layout />}>
+        <Route path="/Home" element={<HomePage />} />
+      </Route>
     </Routes>
   );
 };
 
 export default App;
 
-
-   <div className="login-container">
-      <h2 className="form-title">Login</h2>
-      <form action="" className="login-form">
-        Email
-        <div className="input-wrapper">
-          <input
-            type="email"
-            placeholder="Ingresa tu email"
-            className="input-field"
-            required
-          />
-          <i className="material-symbols-rounded">mail</i>
-        </div>
-        Contraseña
-        <div className="input-wrapper">
-          <input
-            type="password"
-            placeholder="Ingresa tu contraseña"
-            className="input-field"
-            required
-          />
-          <i className="material-symbols-rounded">lock</i>
-        </div>
-        <button className="login-button">Iniciar sesión</button>
-        <a href="#" className="forgot-pass-link">
-          Olvidé mi contraseña
-        </a>
-      </form>
-
-      <p className="separator">
-        <span>or</span>
-      </p>
-      <div className="social-login">
-        <button className="social-button">
-          <img src="google-icon.png" alt="" className="social-icon" />
-          Continue con Google
-        </button>
-        <br></br>
-        <button className="social-button social-apple">
-          <img src="logo-apple.png" alt="" className="social-icon" />
-          Continue con Apple
-        </button>
-      </div>
-    </div>
-origin/main
