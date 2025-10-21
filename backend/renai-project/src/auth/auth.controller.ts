@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -13,35 +7,11 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: { email: string; password: string }) {
-    try {
-      if (!body.email || !body.password) {
-        throw new HttpException(
-          'Email y contraseña son obligatorios',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      return await this.authService.login(body.email, body.password);
-    } catch (error) {
-      console.error('Error en /auth/login:', error.message);
-      throw error;
-    }
+    return this.authService.login(body.email, body.password);
   }
 
   @Post('register')
   async register(@Body() body: { email: string; password: string }) {
-    try {
-      if (!body.email || !body.password) {
-        throw new HttpException(
-          'Email y contraseña son obligatorios',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      return await this.authService.register(body.email, body.password);
-    } catch (error) {
-      console.error('Error en /auth/register:', error.message);
-      throw error;
-    }
+    return this.authService.register(body.email, body.password);
   }
 }
