@@ -11,3 +11,13 @@
   max-width: 1200px;
   margin: 0 auto;
 }
+
+.footer-nav {
+  padding: 2rem;
+  gap: 20px;
+  display: contents;
+}
+
+.footer-nav:hover a {
+  background-color: antiquewhite;
+}
