@@ -1,6 +1,5 @@
 import { useState } from "react";
 import "./LoginPage.css";
-import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -81,7 +80,7 @@ function LoginPage() {
           Continue con Apple
         </button>
       </div>
-    </>
+    </div>
   );
 }
 
