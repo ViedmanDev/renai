@@ -39,18 +39,18 @@ export class AuthService {
     }
   }
 
-  async register(email: string, password: string) {
+  async register(name: string, email: string, password: string) {
     try {
       const existing = await this.userModel.findOne({ email });
       if (existing) throw new UnauthorizedException('El usuario ya existe');
 
       const hashed = await bcrypt.hash(password, 10);
-      const newUser = new this.userModel({ email, password: hashed });
+      const newUser = new this.userModel({ name, email, password: hashed });
       const savedUser = await newUser.save();
 
       return {
         message: 'Usuario registrado correctamente',
-        user: { id: savedUser._id, email: savedUser.email },
+        user: { name: savedUser.name, id: savedUser._id, email: savedUser.email },
       };
     } catch (error) {
       console.error('Error en registro:', error);

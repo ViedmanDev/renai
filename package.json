@@ -5,10 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "nest build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -16,12 +15,12 @@
     "start:prod   ": "node dist/main.js"
   },
   "dependencies": {
-    "lucide-react": "^0.546.0",
     "@nestjs/config": "^4.0.2",
+    "lucide-react": "^0.546.0",
     "nest": "^0.1.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

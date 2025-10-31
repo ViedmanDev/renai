@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./LoginPage.css";
+import { Link } from "react-router-dom";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
@@ -65,6 +66,9 @@ function LoginPage() {
           Olvidé mi contraseña
         </a>
       </form>
+        <p>
+          ¿No tienes cuenta? <Link to="/register">Crea una aquí</Link>
+        </p>
 
       <p className="separator">
         <span>or</span>
