@@ -4,12 +4,13 @@ import "./LoginPage.css";
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // evita recargar la página
+    e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:3000/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -18,7 +19,6 @@ function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Guardar el token JWT
         localStorage.setItem("token", data.token);
         alert("Login exitoso!");
       } else {
