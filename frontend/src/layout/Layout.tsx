@@ -5,19 +5,19 @@ import Footer from "../layout/footer/Footer";
 
 const Layout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen" style={{ margin: 0, padding: 0, width: '100%' }}>
       {/* HEADER */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-white shadow">
+      <header style={{ margin: 0, padding: 0, width: '100vw', position: 'relative', left: '50%', right: '50%', marginLeft: '-50vw', marginRight: '-50vw' }}>
         <Header />
       </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-grow container mx-auto px-6 pt-24 pb-10">
+      <main className="flex-grow bg-gray-50 pt-20 pb-10 px-6">
         <Outlet />
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-gray-900 text-gray-200 mt-auto">
+      <footer style={{ margin: 0, padding: 0, width: '100vw', position: 'relative', left: '50%', right: '50%', marginLeft: '-50vw', marginRight: '-50vw' }}>
         <Footer />
       </footer>
     </div>
@@ -25,5 +25,3 @@ const Layout = () => {
 };
 
 export default Layout;
-
-
