@@ -1,13 +1,14 @@
 import { useState } from "react";
 import "./LoginPage.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // 👈 importamos useNavigate
 
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // 👈 inicializamos el hook
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // evita recargar la página
+    e.preventDefault();
 
     try {
       const res = await fetch("http://localhost:3000/auth/login", {
@@ -22,6 +23,9 @@ function LoginPage() {
         // Guardar el token JWT
         localStorage.setItem("token", data.token);
         alert("Login exitoso!");
+
+        // 👇 Redirige al Home
+        navigate("/Home");
       } else {
         alert(data.message || "Error al iniciar sesión");
       }
@@ -59,20 +63,24 @@ function LoginPage() {
           />
           <i className="material-symbols-rounded">lock</i>
         </div>
+
         <button className="login-button" type="submit">
           Iniciar sesión
         </button>
+
         <a href="#" className="forgot-pass-link">
           Olvidé mi contraseña
         </a>
       </form>
-        <p>
-          ¿No tienes cuenta? <Link to="/register">Crea una aquí</Link>
-        </p>
+
+      <p>
+        ¿No tienes cuenta? <Link to="/register">Crea una aquí</Link>
+      </p>
 
       <p className="separator">
         <span>or</span>
       </p>
+
       <div className="social-login">
         <button className="social-button">
           <img src="google-icon.png" alt="" className="social-icon" />
