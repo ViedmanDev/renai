@@ -1,0 +1,151 @@
+/**
+ * ESTILOS DE LA PÁGINA PRINCIPAL
+ *
+ * Este archivo contiene los estilos para la página principal
+ * que muestra la lista de proyectos.
+ *
+ * Componente asociado: app/page.jsx
+ */
+
+/* Contenedor principal */
+.projects-page {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+/* Header de la página */
+.projects-page__header {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.projects-page__header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.projects-page__logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.projects-page__logo-icon {
+  font-size: 32px;
+  color: #7c3aed;
+}
+
+.projects-page__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* Barra de búsqueda */
+.projects-page__search {
+  flex: 1;
+  max-width: 400px;
+}
+
+/* Botón de crear proyecto */
+.projects-page__create-button {
+  padding: 10px 20px;
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.projects-page__create-button:hover {
+  background-color: #6d28d9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Contenido principal */
+.projects-page__content {
+  padding: 32px;
+}
+
+/* Grid de proyectos */
+.projects-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* Estado vacío */
+.projects-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  text-align: center;
+}
+
+.projects-page__empty-icon {
+  font-size: 80px;
+  color: #d1d5db;
+  margin-bottom: 24px;
+}
+
+.projects-page__empty-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.projects-page__empty-text {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .projects-page__grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .projects-page__header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .projects-page__header-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .projects-page__search {
+    max-width: 100%;
+  }
+
+  .projects-page__content {
+    padding: 16px;
+  }
+
+  .projects-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
