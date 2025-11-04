@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 /**
  * COMPONENTE: TaskManager
@@ -16,7 +16,7 @@
  * Campos: id, project_id, title, description, status, priority, due_date, created_at
  */
 
-import { useState } from "react";
+import { useState } from "react"
 import {
   Box,
   TextField,
@@ -36,47 +36,47 @@ import {
   FormControl,
   InputLabel,
   Chip,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import "./TaskManager.css";
+} from "@mui/material"
+import AddIcon from "@mui/icons-material/Add"
+import EditIcon from "@mui/icons-material/Edit"
+import DeleteIcon from "@mui/icons-material/Delete"
+import "./TaskManager.css"
 
 const PRIORITY_LEVELS = [
   { value: "low", label: "Baja", color: "#66bb6a" },
   { value: "medium", label: "Media", color: "#ffee58" },
   { value: "high", label: "Alta", color: "#ffa726" },
   { value: "urgent", label: "Urgente", color: "#ef5350" },
-];
+]
 
 export default function TaskManager({ projectId }) {
-  const [tasks, setTasks] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDescription, setTaskDescription] = useState("");
-  const [taskPriority, setTaskPriority] = useState("medium");
-  const [taskDueDate, setTaskDueDate] = useState("");
+  const [tasks, setTasks] = useState([])
+  const [openDialog, setOpenDialog] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [taskTitle, setTaskTitle] = useState("")
+  const [taskDescription, setTaskDescription] = useState("")
+  const [taskPriority, setTaskPriority] = useState("medium")
+  const [taskDueDate, setTaskDueDate] = useState("")
 
   const handleOpenDialog = (task = null) => {
     if (task) {
-      setEditingTask(task);
-      setTaskTitle(task.title);
-      setTaskDescription(task.description);
-      setTaskPriority(task.priority);
-      setTaskDueDate(task.dueDate);
+      setEditingTask(task)
+      setTaskTitle(task.title)
+      setTaskDescription(task.description)
+      setTaskPriority(task.priority)
+      setTaskDueDate(task.dueDate)
     } else {
-      setEditingTask(null);
-      setTaskTitle("");
-      setTaskDescription("");
-      setTaskPriority("medium");
-      setTaskDueDate("");
+      setEditingTask(null)
+      setTaskTitle("")
+      setTaskDescription("")
+      setTaskPriority("medium")
+      setTaskDueDate("")
     }
-    setOpenDialog(true);
-  };
+    setOpenDialog(true)
+  }
 
   const handleSaveTask = () => {
-    if (!taskTitle.trim()) return;
+    if (!taskTitle.trim()) return
 
     if (editingTask) {
       setTasks(
@@ -89,9 +89,9 @@ export default function TaskManager({ projectId }) {
                 priority: taskPriority,
                 dueDate: taskDueDate,
               }
-            : t
-        )
-      );
+            : t,
+        ),
+      )
     } else {
       const newTask = {
         id: Date.now().toString(),
@@ -102,40 +102,35 @@ export default function TaskManager({ projectId }) {
         dueDate: taskDueDate,
         completed: false,
         createdAt: new Date().toISOString(),
-      };
-      setTasks([...tasks, newTask]);
+      }
+      setTasks([...tasks, newTask])
     }
 
-    setOpenDialog(false);
-  };
+    setOpenDialog(false)
+  }
 
   const handleToggleTask = (taskId) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      )
-    );
-  };
+    setTasks(tasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t)))
+  }
 
   const handleDeleteTask = (taskId) => {
     if (confirm("¿Estás seguro de eliminar esta tarea?")) {
-      setTasks(tasks.filter((t) => t.id !== taskId));
+      setTasks(tasks.filter((t) => t.id !== taskId))
     }
-  };
+  }
 
   const getPriorityColor = (priority) => {
-    return (
-      PRIORITY_LEVELS.find((p) => p.value === priority)?.color || "#9e9e9e"
-    );
-  };
+    return PRIORITY_LEVELS.find((p) => p.value === priority)?.color || "#9e9e9e"
+  }
 
   const getPriorityLabel = (priority) => {
-    return PRIORITY_LEVELS.find((p) => p.value === priority)?.label || priority;
-  };
+    return PRIORITY_LEVELS.find((p) => p.value === priority)?.label || priority
+  }
 
   return (
     <Box className="task-manager">
       <Box className="task-manager__header">
+        <Typography variant="h6">Tareas del Proyecto</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -157,66 +152,36 @@ export default function TaskManager({ projectId }) {
           tasks.map((task) => (
             <ListItem
               key={task.id}
-              className={`task-manager__list-item ${
-                task.completed ? "task-manager__list-item--completed" : ""
-              }`}
+              className={`task-manager__list-item ${task.completed ? "task-manager__list-item--completed" : ""}`}
               secondaryAction={
                 <Box className="task-manager__actions">
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleOpenDialog(task)}
-                    size="small"
-                  >
+                  <IconButton edge="end" onClick={() => handleOpenDialog(task)} size="small">
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleDeleteTask(task.id)}
-                    size="small"
-                    color="error"
-                  >
+                  <IconButton edge="end" onClick={() => handleDeleteTask(task.id)} size="small" color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
               }
             >
-              <Checkbox
-                checked={task.completed}
-                onChange={() => handleToggleTask(task.id)}
-              />
+              <Checkbox checked={task.completed} onChange={() => handleToggleTask(task.id)} />
               <ListItemText
                 primary={
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <span
-                      className={
-                        task.completed
-                          ? "task-manager__task-title--completed"
-                          : ""
-                      }
-                    >
-                      {task.title}
-                    </span>
+                    <span className={task.completed ? "task-manager__task-title--completed" : ""}>{task.title}</span>
                     <Chip
                       label={getPriorityLabel(task.priority)}
                       size="small"
-                      sx={{
-                        bgcolor: getPriorityColor(task.priority),
-                        color: "white",
-                      }}
+                      sx={{ bgcolor: getPriorityColor(task.priority), color: "white" }}
                     />
                   </Box>
                 }
                 secondary={
                   <>
-                    {task.description && (
-                      <Typography variant="body2">
-                        {task.description}
-                      </Typography>
-                    )}
+                    {task.description && <Typography variant="body2">{task.description}</Typography>}
                     {task.dueDate && (
                       <Typography variant="caption" color="text.secondary">
-                        Vence:{" "}
-                        {new Date(task.dueDate).toLocaleDateString("es-ES")}
+                        Vence: {new Date(task.dueDate).toLocaleDateString("es-ES")}
                       </Typography>
                     )}
                   </>
@@ -227,15 +192,8 @@ export default function TaskManager({ projectId }) {
         )}
       </List>
 
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingTask ? "Editar Tarea" : "Nueva Tarea"}
-        </DialogTitle>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingTask ? "Editar Tarea" : "Nueva Tarea"}</DialogTitle>
         <DialogContent>
           <Box className="task-manager__dialog-content">
             <TextField
@@ -257,11 +215,7 @@ export default function TaskManager({ projectId }) {
 
             <FormControl fullWidth>
               <InputLabel>Prioridad</InputLabel>
-              <Select
-                value={taskPriority}
-                onChange={(e) => setTaskPriority(e.target.value)}
-                label="Prioridad"
-              >
+              <Select value={taskPriority} onChange={(e) => setTaskPriority(e.target.value)} label="Prioridad">
                 {PRIORITY_LEVELS.map((priority) => (
                   <MenuItem key={priority.value} value={priority.value}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -292,15 +246,11 @@ export default function TaskManager({ projectId }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button
-            onClick={handleSaveTask}
-            variant="contained"
-            disabled={!taskTitle.trim()}
-          >
+          <Button onClick={handleSaveTask} variant="contained" disabled={!taskTitle.trim()}>
             {editingTask ? "Actualizar" : "Crear"}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  );
+  )
 }
