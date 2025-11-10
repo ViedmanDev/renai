@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
+import { UsersModule } from './users/users.module';
+import { MailerService } from './mailer/mailer.service';
 
 @Module({
   imports: [
@@ -10,8 +12,11 @@ import { ProjectsModule } from './projects/projects.module';
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.MONGO_URI!),
+    UsersModule,
     AuthModule,
     ProjectsModule,
+    UsersModule,
   ],
+  providers: [MailerService],
 })
 export class AppModule {}
