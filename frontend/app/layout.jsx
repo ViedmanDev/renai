@@ -1,5 +1,6 @@
 import { ProjectProvider } from "@/contexts/ProjectContext";
-import Analytics from "@/components/Analytics"; // Assuming Analytics is a component located in this path
+import { AuthProvider } from "@/contexts/AuthContext"; 
+import Analytics from "@/components/Analytics";
 
 export default function RootLayout({ children }) {
   return (
@@ -11,7 +12,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={`font-sans antialiased`}>
-        <ProjectProvider>{children}</ProjectProvider>
+        <AuthProvider> 
+          <ProjectProvider>
+            {children}
+          </ProjectProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>
