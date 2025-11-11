@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * COMPONENTE: CreateProjectModal
@@ -25,38 +25,46 @@
  * - Implementar crop de imagen antes de guardar
  */
 
-import { useState } from "react"
-import { Dialog, DialogContent, TextField, Button, Box, IconButton, Typography } from "@mui/material"
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"
-import EditIcon from "@mui/icons-material/Edit"
-import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  TextField,
+  Button,
+  Box,
+  IconButton,
+  Typography,
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
 export default function CreateProjectModal({ open, onClose, onCreateProject }) {
   // Estado para el nombre del proyecto
-  const [projectName, setProjectName] = useState("")
+  const [projectName, setProjectName] = useState("");
   // Estado para la descripción del proyecto
-  const [projectDescription, setProjectDescription] = useState("")
+  const [projectDescription, setProjectDescription] = useState("");
   // Estado para la imagen de portada
-  const [coverImage, setCoverImage] = useState(null)
+  const [coverImage, setCoverImage] = useState(null);
   // Estado para la vista previa de la imagen
-  const [imagePreview, setImagePreview] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null);
 
   /**
    * Maneja la selección de imagen de portada
    * Crea una vista previa usando FileReader
    */
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files[0];
     if (file) {
-      setCoverImage(file)
+      setCoverImage(file);
       // Crear vista previa
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   /**
    * Crea el proyecto con o sin plantilla
@@ -67,16 +75,16 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
       onCreateProject({
         name: projectName,
         description: projectDescription,
-        coverImage: imagePreview, // Base64 de la imagen
+        coverImage: imagePreview,
         fromTemplate,
-      })
+      });
       // Limpiar estado
-      setProjectName("")
-      setProjectDescription("")
-      setCoverImage(null)
-      setImagePreview(null)
+      setProjectName("");
+      setProjectDescription("");
+      setCoverImage(null);
+      setImagePreview(null);
     }
-  }
+  };
 
   return (
     <Dialog
@@ -157,7 +165,9 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
                   />
                 ) : (
                   <Box sx={{ textAlign: "center" }}>
-                    <AddPhotoAlternateIcon sx={{ fontSize: 48, color: "#ccc" }} />
+                    <AddPhotoAlternateIcon
+                      sx={{ fontSize: 48, color: "#ccc" }}
+                    />
                     <Typography variant="caption" color="text.secondary">
                       Click para agregar imagen
                     </Typography>
@@ -235,5 +245,5 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
         </Box>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

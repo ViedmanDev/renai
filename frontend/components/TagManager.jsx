@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * COMPONENTE: TagManager
@@ -21,7 +21,7 @@
  * - DELETE /api/tags/:id - Eliminar etiqueta
  */
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Box,
   TextField,
@@ -36,11 +36,11 @@ import {
   DialogContent,
   DialogActions,
   Typography,
-} from "@mui/material"
-import AddIcon from "@mui/icons-material/Add"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteIcon from "@mui/icons-material/Delete"
-import "./TagManager.css"
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import "./TagManager.css";
 
 // Colores predefinidos para etiquetas
 const TAG_COLORS = [
@@ -51,59 +51,63 @@ const TAG_COLORS = [
   { name: "Verde", value: "#66bb6a" },
   { name: "Amarillo", value: "#ffee58" },
   { name: "Naranja", value: "#ffa726" },
-]
+];
 
 export default function TagManager() {
   const [tags, setTags] = useState([
     { id: "1", name: "Costo", color: "#ffa726" },
     { id: "2", name: "Revisar", color: "#ffee58" },
     { id: "3", name: "Factibilidad", color: "#66bb6a" },
-  ])
-  const [openDialog, setOpenDialog] = useState(false)
-  const [editingTag, setEditingTag] = useState(null)
-  const [tagName, setTagName] = useState("")
-  const [tagColor, setTagColor] = useState(TAG_COLORS[0].value)
+  ]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingTag, setEditingTag] = useState(null);
+  const [tagName, setTagName] = useState("");
+  const [tagColor, setTagColor] = useState(TAG_COLORS[0].value);
 
   /**
    * Abre el diálogo para crear o editar etiqueta
    */
   const handleOpenDialog = (tag = null) => {
     if (tag) {
-      setEditingTag(tag)
-      setTagName(tag.name)
-      setTagColor(tag.color)
+      setEditingTag(tag);
+      setTagName(tag.name);
+      setTagColor(tag.color);
     } else {
-      setEditingTag(null)
-      setTagName("")
-      setTagColor(TAG_COLORS[0].value)
+      setEditingTag(null);
+      setTagName("");
+      setTagColor(TAG_COLORS[0].value);
     }
-    setOpenDialog(true)
-  }
+    setOpenDialog(true);
+  };
 
   /**
    * Guarda la etiqueta (crear o actualizar)
    * TODO: Conectar con API para persistir en BD
    */
   const handleSaveTag = () => {
-    if (!tagName.trim()) return
+    if (!tagName.trim()) return;
 
     if (editingTag) {
       // Actualizar etiqueta existente
-      setTags(tags.map((t) => (t.id === editingTag.id ? { ...t, name: tagName, color: tagColor } : t)))
+      setTags(
+        tags.map((t) =>
+          t.id === editingTag.id ? { ...t, name: tagName, color: tagColor } : t
+        )
+      );
     } else {
       // Crear nueva etiqueta
       const newTag = {
         id: Date.now().toString(),
         name: tagName,
         color: tagColor,
-      }
-      setTags([...tags, newTag])
+      };
+      setTags([...tags, newTag]);
     }
 
-    setOpenDialog(false)
-    setTagName("")
-    setTagColor(TAG_COLORS[0].value)
-  }
+    setOpenDialog(false);
+    setTagName("");
+    setTagColor(TAG_COLORS[0].value);
+  };
 
   /**
    * Elimina una etiqueta
@@ -111,9 +115,9 @@ export default function TagManager() {
    */
   const handleDeleteTag = (tagId) => {
     if (confirm("¿Estás seguro de eliminar esta etiqueta?")) {
-      setTags(tags.filter((t) => t.id !== tagId))
+      setTags(tags.filter((t) => t.id !== tagId));
     }
-  }
+  };
 
   return (
     <Box className="tag-manager">
@@ -136,24 +140,46 @@ export default function TagManager() {
             className="tag-manager__list-item"
             secondaryAction={
               <Box className="tag-manager__actions">
-                <IconButton edge="end" onClick={() => handleOpenDialog(tag)} size="small">
+                <IconButton
+                  edge="end"
+                  onClick={() => handleOpenDialog(tag)}
+                  size="small"
+                >
                   <EditIcon fontSize="small" />
                 </IconButton>
-                <IconButton edge="end" onClick={() => handleDeleteTag(tag.id)} size="small" color="error">
+                <IconButton
+                  edge="end"
+                  onClick={() => handleDeleteTag(tag.id)}
+                  size="small"
+                  color="error"
+                >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Box>
             }
           >
-            <Chip label={tag.name} sx={{ bgcolor: tag.color, color: "white", mr: 2 }} />
-            <ListItemText primary={tag.name} secondary={`Color: ${tag.color}`} />
+            <Chip
+              label={tag.name}
+              sx={{ bgcolor: tag.color, color: "white", mr: 2 }}
+            />
+            <ListItemText
+              primary={tag.name}
+              secondary={`Color: ${tag.color}`}
+            />
           </ListItem>
         ))}
       </List>
 
       {/* Dialog para crear/editar etiqueta */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingTag ? "Editar Etiqueta" : "Nueva Etiqueta"}</DialogTitle>
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingTag ? "Editar Etiqueta" : "Nueva Etiqueta"}
+        </DialogTitle>
         <DialogContent>
           <Box className="tag-manager__dialog-content">
             <TextField
@@ -171,7 +197,11 @@ export default function TagManager() {
               {TAG_COLORS.map((color) => (
                 <Box
                   key={color.value}
-                  className={`tag-manager__color-option ${tagColor === color.value ? "tag-manager__color-option--selected" : ""}`}
+                  className={`tag-manager__color-option ${
+                    tagColor === color.value
+                      ? "tag-manager__color-option--selected"
+                      : ""
+                  }`}
                   sx={{ bgcolor: color.value }}
                   onClick={() => setTagColor(color.value)}
                   title={color.name}
@@ -183,17 +213,24 @@ export default function TagManager() {
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Vista previa:
               </Typography>
-              <Chip label={tagName || "Etiqueta"} sx={{ bgcolor: tagColor, color: "white" }} />
+              <Chip
+                label={tagName || "Etiqueta"}
+                sx={{ bgcolor: tagColor, color: "white" }}
+              />
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button onClick={handleSaveTag} variant="contained" disabled={!tagName.trim()}>
+          <Button
+            onClick={handleSaveTag}
+            variant="contained"
+            disabled={!tagName.trim()}
+          >
             {editingTag ? "Actualizar" : "Crear"}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  )
+  );
 }
