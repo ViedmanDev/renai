@@ -15,7 +15,7 @@ export class AuthService {
 
   async login(email: string, password: string) {
     try {
-      const user = await this.userModel.findOne({ email });
+      const user = await this.userModel.findOne({ email }).select('+password');
       if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
       const valid = await bcrypt.compare(password, user.password);

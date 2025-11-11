@@ -14,6 +14,13 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: { email: string; password: string }) {
+    console.log('=== CONTROLLER LOGIN ===');
+    console.log('Body completo:', body);
+    console.log('Email:', body.email);
+    console.log('Password:', body.password);
+    console.log('Password tipo:', typeof body.password);
+    console.log('Password undefined?:', body.password === undefined);
+    console.log('=======================');
     return this.authService.login(body.email, body.password);
   }
 

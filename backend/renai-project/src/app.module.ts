@@ -15,7 +15,6 @@ import { MailerService } from './mailer/mailer.service';
     UsersModule,
     AuthModule,
     ProjectsModule,
-    UsersModule,
   ],
   providers: [MailerService],
 })
