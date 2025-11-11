@@ -1,33 +1,36 @@
-<<<<<<< HEAD:src/pages/LoginPage/LoginPage.jsx
-import { useState } from "react";
-import "./LoginPage.css";
-import { Link, useNavigate } from "react-router-dom"; // 👈 importamos useNavigate
-=======
 "use client";
->>>>>>> origin/julian/prueba:frontend/app/auth/login/page.jsx
-
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import "./login.css";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-<<<<<<< HEAD:src/pages/LoginPage/LoginPage.jsx
-  const navigate = useNavigate(); // 👈 inicializamos el hook
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-=======
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/project";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const handleLogin = async (e) => {
     e.preventDefault();
->>>>>>> origin/julian/prueba:frontend/app/auth/login/page.jsx
+    if (!email.includes("@")) {
+      alert("El email no es válido");
+      return;
+    }
+
+    if (password.length < 6) {
+      alert("La contraseña debe tener mínimo 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    
+
     try {
+      console.log("API_URL ES:", API_URL);
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,22 +40,17 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem("token", data.token);
-<<<<<<< HEAD:src/pages/LoginPage/LoginPage.jsx
-        alert("Login exitoso!");
-
-        // 👇 Redirige al Home
-        navigate("/Home");
-=======
         document.cookie = "auth=1; path=/"; // útil si luego usas middleware
         // redirige a donde quieras:
-        router.push("/"); // o '/admin' o '/project'
->>>>>>> origin/julian/prueba:frontend/app/auth/login/page.jsx
+        router.push(redirectTo); // o '/admin' o '/project'
       } else {
         alert(data.message || "Error al iniciar sesión");
       }
     } catch (err) {
       console.error(err);
       alert("Error de conexión al backend");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,18 +83,16 @@ export default function LoginPage() {
           />
           <i className="material-symbols-rounded">lock</i>
         </div>
-
-        <button className="login-button" type="submit">
-          Iniciar sesión
+        <button className="login-button" type="submit" disabled={loading}>
+          {loading ? "Cargando..." : "Iniciar sesión"}
         </button>
-
         <a href="#" className="forgot-pass-link">
           Olvidé mi contraseña
         </a>
       </form>
 
       <p>
-        ¿No tienes cuenta? <Link to="/register">Crea una aquí</Link>
+        ¿No tienes cuenta? <Link href="/auth/register">Crea una aquí</Link>
       </p>
 
       <p className="separator">
