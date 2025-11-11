@@ -1,4 +1,11 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -13,5 +20,15 @@ export class AuthController {
   @Post('register')
   async register(@Body() body: { name: string; email: string; password: string }) {
     return this.authService.register(body.name, body.email, body.password);
+  }
+
+  @Get('verify')
+  async verify(@Headers('authorization') auth: string) {
+    if (!auth || !auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+
+    const token = auth.split(' ')[1];
+    return this.authService.verifyToken(token);
   }
 }
