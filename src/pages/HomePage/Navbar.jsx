@@ -1,6 +1,17 @@
+"use client";
+
 import { Search, Menu } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const Navbar = () => {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    document.cookie = "auth=; path=/; max-age=0";
+    router.push("/auth/login");
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-left">
@@ -28,8 +39,14 @@ const Navbar = () => {
           <option>Proyecto 2</option>
           <option>Proyecto 3</option>
         </select>
+
         <button className="export-btn">Exportar como</button>
         <button className="share-btn">→</button>
+
+        {/* ✅ BOTÓN LOGOUT */}
+        <button className="logout-btn" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
       </div>
     </nav>
   );
