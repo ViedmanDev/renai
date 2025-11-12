@@ -8,15 +8,20 @@ import MenuIcon from "@mui/icons-material/Menu"
 import AppsIcon from "@mui/icons-material/Apps"
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
 import ChevronRightIcon from "@mui/icons-material/ChevronRight"
+import LogoutIcon from "@mui/icons-material/Logout"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
 import { useProjects } from "@/contexts/ProjectContext"
+import { useAuth } from "@/contexts/AuthContext"
 import CreateProjectModal from "@/components/CreateProjectModal"
 import ProjectCard from "@/components/ProjectCard"
+import SetPasswordModal from "@/components/SetPasswordModal"
 
 export default function HomePage() {
   const router = useRouter()
   const { projects, createProject, setCurrentProject, reorderProjects } = useProjects()
+  const { user, logout } = useAuth()
   const [openModal, setOpenModal] = useState(false)
+  const [openPasswordModal, setOpenPasswordModal] = useState(false)
 
   const handleCreateProject = (projectData) => {
     const newProject = createProject(projectData)
@@ -38,6 +43,12 @@ export default function HomePage() {
   const handleDragEnd = (result) => {
     if (!result.destination) return
     reorderProjects(result.source.index, result.destination.index)
+  }
+
+  const handleLogout = () => {
+    if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+      logout()
+    }
   }
 
   return (
@@ -82,13 +93,41 @@ export default function HomePage() {
               },
             }}
           />
+          
           <Box sx={{ flexGrow: 1 }} />
+
+          {/* Botón de establecer contraseña */}
+          {user && (
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={() => setOpenPasswordModal(true)}
+              sx={{ mr: 2 }}
+            >
+              Establecer Contraseña
+            </Button>
+          )}
+          
+          {/* Nombre del usuario */}
           <Button variant="text" sx={{ textTransform: "none", color: "text.primary" }}>
-            User name example
+            {user?.name || "Usuario"}
           </Button>
-          <Avatar sx={{ bgcolor: "#5e35b1" }}>J</Avatar>
-          <IconButton>
-            <ChevronRightIcon />
+          
+          {/* Avatar con foto de Google o inicial */}
+          <Avatar 
+            sx={{ bgcolor: "#5e35b1" }}
+            src={user?.picture}
+          >
+            {!user?.picture && (user?.name?.charAt(0) || "U")}
+          </Avatar>
+          
+          {/* Botón de Logout */}
+          <IconButton 
+            onClick={handleLogout}
+            color="error"
+            title="Cerrar sesión"
+          >
+            <LogoutIcon />
           </IconButton>
         </Box>
       </Box>
@@ -145,7 +184,20 @@ export default function HomePage() {
         </DragDropContext>
       </Container>
 
-      <CreateProjectModal open={openModal} onClose={() => setOpenModal(false)} onCreateProject={handleCreateProject} />
+      {/* Modals */}
+      <CreateProjectModal 
+        open={openModal} 
+        onClose={() => setOpenModal(false)} 
+        onCreateProject={handleCreateProject} 
+      />
+      
+      <SetPasswordModal 
+        isOpen={openPasswordModal}
+        onClose={() => setOpenPasswordModal(false)}
+        onSuccess={() => {
+          console.log("Contraseña establecida exitosamente");
+        }}
+      />
     </Box>
   )
 }

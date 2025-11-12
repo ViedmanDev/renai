@@ -9,6 +9,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const setUserFromToken = async (token) => {
+  try {
+    const res = await fetch(`${API_URL}/auth/verify`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data.user);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error verificando token:", error);
+    return false;
+  }
+};
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -112,6 +131,7 @@ export function AuthProvider({ children }) {
         logout,
         register,
         isAuthenticated: !!user,
+        setUserFromToken,
       }}
     >
       {children}
