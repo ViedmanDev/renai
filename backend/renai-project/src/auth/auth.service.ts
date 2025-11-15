@@ -48,11 +48,70 @@ export class AuthService {
 
   async register(name: string, email: string, password: string) {
     try {
-      const existing = await this.userModel.findOne({ email });
-      if (existing) throw new UnauthorizedException('El usuario ya existe');
+      // VALIDACIONES DE ENTRADA
 
+      // Validar nombre
+      if (!name || name.trim().length === 0) {
+        throw new UnauthorizedException('El nombre es requerido');
+      }
+      if (name.trim().length < 2) {
+        throw new UnauthorizedException('El nombre debe tener al menos 2 caracteres');
+      }
+      if (name.trim().length > 50) {
+        throw new UnauthorizedException('El nombre no puede tener más de 50 caracteres');
+      }
+
+      // Validar email
+      if (!email || email.trim().length === 0) {
+        throw new UnauthorizedException('El email es requerido');
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new UnauthorizedException('El formato del email no es válido');
+      }
+      if (email.length > 100) {
+        throw new UnauthorizedException('El email es demasiado largo');
+      }
+
+      // Validar contraseña
+      if (!password || password.length === 0) {
+        throw new UnauthorizedException('La contraseña es requerida');
+      }
+      if (password.length < 6) {
+        throw new UnauthorizedException('La contraseña debe tener al menos 6 caracteres');
+      }
+      if (password.length > 100) {
+        throw new UnauthorizedException('La contraseña es demasiado larga');
+      }
+
+      // Validar complejidad de contraseña
+      const hasLetter = /[a-zA-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      if (!hasLetter || !hasNumber) {
+        throw new UnauthorizedException('La contraseña debe contener letras y números');
+      }
+
+      // Contraseñas débiles comunes
+      const weakPasswords = ['123456', 'password', 'qwerty', '111111', 'abc123'];
+      if (weakPasswords.includes(password.toLowerCase())) {
+        throw new UnauthorizedException('Esta contraseña es demasiado débil');
+      }
+
+      // Verificar si el usuario ya existe
+      const existing = await this.userModel.findOne({
+        email: email.toLowerCase().trim()
+      });
+      if (existing) {
+        throw new UnauthorizedException('El usuario ya existe');
+      }
+
+      // Crear usuario
       const hashed = await bcrypt.hash(password, 10);
-      const newUser = new this.userModel({ name, email, password: hashed });
+      const newUser = new this.userModel({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashed
+      });
       const savedUser = await newUser.save();
 
       const userId = (savedUser._id as Types.ObjectId).toString();
@@ -62,6 +121,8 @@ export class AuthService {
         process.env.JWT_SECRET || 'SECRET_KEY',
         { expiresIn: '1d' },
       );
+
+      console.log('✅ Usuario registrado:', savedUser.email);
 
       return {
         message: 'Usuario registrado correctamente',
@@ -230,6 +291,6 @@ export class AuthService {
       }
 
       throw new InternalServerErrorException('Error al establecer contraseña');
-   }
+    }
   }
 }

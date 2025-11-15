@@ -9,29 +9,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const setUserFromToken = async (token) => {
-  try {
-    const res = await fetch(`${API_URL}/auth/verify`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      setUser(data.user);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error verificando token:", error);
-    return false;
-  }
-};
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-  // Verificar autenticación al cargar
   useEffect(() => {
     checkAuth()
   }, [])
@@ -45,7 +25,6 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // Verificar token con el backend
       const res = await fetch(`${API_URL}/auth/verify`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -56,7 +35,6 @@ export function AuthProvider({ children }) {
         const data = await res.json()
         setUser(data.user)
       } else {
-        // Token inválido o expirado
         logout()
       }
     } catch (error) {
@@ -98,6 +76,7 @@ export function AuthProvider({ children }) {
     router.push("/auth/login")
   }
 
+  //Método de registro
   const register = async (name, email, password) => {
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
@@ -131,7 +110,6 @@ export function AuthProvider({ children }) {
         logout,
         register,
         isAuthenticated: !!user,
-        setUserFromToken,
       }}
     >
       {children}
