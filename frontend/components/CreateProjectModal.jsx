@@ -34,6 +34,7 @@ import {
   Box,
   IconButton,
   Typography,
+  Alert,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
@@ -48,6 +49,33 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
   const [coverImage, setCoverImage] = useState(null);
   // Estado para la vista previa de la imagen
   const [imagePreview, setImagePreview] = useState(null);
+
+  // Estado para errores de validación
+  const [errors, setErrors] = useState({
+    name: "",
+    description: "",
+  });
+  const validateName = (value) => {
+    if (!value || value.trim().length === 0) {
+      return "El nombre del proyecto es requerido";
+    }
+    if (value.trim().length < 3) {
+      return "El nombre debe tener al menos 3 caracteres";
+    }
+    if (value.length > 50) {
+      return "El nombre no puede exceder 50 caracteres";
+    }
+    return "";
+  };
+  //handleNameChange con validación
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setProjectName(value);
+    
+    // Validar en tiempo real
+    const error = validateName(value);
+    setErrors(prev => ({ ...prev, name: error }));
+  };
 
   /**
    * Maneja la selección de imagen de portada
@@ -71,6 +99,12 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
    * Incluye la imagen de portada si fue seleccionada
    */
   const handleCreate = (fromTemplate = false) => {
+    const nameError = validateName(projectName);
+    if (nameError) {
+      setErrors(prev => ({ ...prev, name: nameError }));
+      return;
+    }
+
     if (projectName.trim()) {
       onCreateProject({
         name: projectName,
@@ -83,6 +117,7 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
       setProjectDescription("");
       setCoverImage(null);
       setImagePreview(null);
+      setErrors({ name: "", description: "" });
     }
   };
 
@@ -185,7 +220,10 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
             fullWidth
             variant="outlined"
             value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
+            onChange={handleNameChange}
+            //onChange={(e) => setProjectName(e.target.value)}
+            error={!!errors.name}
+            helperText={errors.name}
             placeholder="Ingresa el nombre"
             sx={{ mb: 2 }}
           />
@@ -208,7 +246,8 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
           <Button
             variant="contained"
             onClick={() => handleCreate(false)}
-            disabled={!projectName.trim()}
+            disabled={!projectName.trim() || !!errors.name}
+            //disabled={!projectName.trim()}
             sx={{
               bgcolor: "#2c2c2c",
               color: "white",
@@ -227,7 +266,8 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
           <Button
             variant="contained"
             onClick={() => handleCreate(true)}
-            disabled={!projectName.trim()}
+            disabled={!projectName.trim() || !!errors.name}
+            //disabled={!projectName.trim()}
             sx={{
               bgcolor: "#2c2c2c",
               color: "white",
