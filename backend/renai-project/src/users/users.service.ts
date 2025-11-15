@@ -21,7 +21,7 @@ export class UsersService {
     return crypto.randomBytes(32).toString('hex'); // 64 chars
   }
 
-  async createUser(email: string, password: string) {
+  async createUser(name: string, email: string, password: string) {
     const existing = await this.userModel.findOne({ email }).exec();
     if (existing) throw new BadRequestException('Email ya registrado');
 
@@ -30,6 +30,7 @@ export class UsersService {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
 
     const user = await this.userModel.create({
+      name,
       email,
       passwordHash,
       isEmailVerified: false,

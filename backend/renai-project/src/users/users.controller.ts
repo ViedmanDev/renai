@@ -2,9 +2,11 @@ import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 class CreateUserDto {
+  name: string;
   email: string;
   password: string;
 }
+
 class ResendDto {
   email: string;
 }
@@ -15,8 +17,8 @@ export class UsersController {
 
   @Post('register')
   async register(@Body() body: CreateUserDto) {
-    const { email, password } = body;
-    return this.usersService.createUser(email, password);
+    const { name, email, password } = body;
+    return this.usersService.createUser(name, email, password);
   }
 
   @Post('resend-verification')

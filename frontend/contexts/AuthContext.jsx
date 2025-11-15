@@ -12,7 +12,6 @@ export function AuthProvider({ children }) {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-  // Verificar autenticación al cargar
   useEffect(() => {
     checkAuth()
   }, [])
@@ -26,7 +25,6 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // Verificar token con el backend
       const res = await fetch(`${API_URL}/auth/verify`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -37,7 +35,6 @@ export function AuthProvider({ children }) {
         const data = await res.json()
         setUser(data.user)
       } else {
-        // Token inválido o expirado
         logout()
       }
     } catch (error) {
@@ -79,6 +76,7 @@ export function AuthProvider({ children }) {
     router.push("/auth/login")
   }
 
+  //Método de registro
   const register = async (name, email, password) => {
     try {
       const res = await fetch(`${API_URL}/auth/register`, {

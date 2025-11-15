@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
-  
+
   const { login } = useAuth();
 
   // Estados de error
@@ -56,7 +56,7 @@ export default function LoginPage() {
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setEmail(value);
-    
+
     // Validar solo si el campo ya fue tocado
     if (errors.email || value) {
       setErrors(prev => ({
@@ -71,7 +71,7 @@ export default function LoginPage() {
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     setPassword(value);
-    
+
     // Validar solo si el campo ya fue tocado
     if (errors.password || value) {
       setErrors(prev => ({
@@ -114,16 +114,16 @@ export default function LoginPage() {
     } else {
       // Manejar errores específicos del backend
       const errorMessage = result.message || "Error al iniciar sesión";
-      
+
       // Detectar tipo de error
-      if (errorMessage.toLowerCase().includes("usuario no encontrado") || 
-          errorMessage.toLowerCase().includes("no encontrado")) {
+      if (errorMessage.toLowerCase().includes("usuario no encontrado") ||
+        errorMessage.toLowerCase().includes("no encontrado")) {
         setErrors(prev => ({
           ...prev,
           email: "No existe una cuenta con este email"
         }));
-      } else if (errorMessage.toLowerCase().includes("contraseña") || 
-                 errorMessage.toLowerCase().includes("incorrecta")) {
+      } else if (errorMessage.toLowerCase().includes("contraseña") ||
+        errorMessage.toLowerCase().includes("incorrecta")) {
         setErrors(prev => ({
           ...prev,
           password: "La contraseña es incorrecta"
@@ -145,7 +145,7 @@ export default function LoginPage() {
       <h2 className="form-title">Login</h2>
 
       <form className="login-form" onSubmit={handleLogin} noValidate>
-        
+
         {/* Error general (problemas de conexión, servidor, etc.) */}
         {errors.general && (
           <div style={{
@@ -214,9 +214,9 @@ export default function LoginPage() {
           </div>
         )}
 
-        <button 
-          className="login-button" 
-          type="submit" 
+        <button
+          className="login-button"
+          type="submit"
           disabled={loading}
           style={{
             marginTop: "16px"
@@ -239,7 +239,13 @@ export default function LoginPage() {
       </p>
 
       <div className="social-login">
-        <button className="social-button">
+        <button 
+          className="social-button"
+          onClick={() => {
+            window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+          }}
+          type="button"
+        >
           <img src="/google-icon.png" alt="" className="social-icon" />
           Continue con Google
         </button>
