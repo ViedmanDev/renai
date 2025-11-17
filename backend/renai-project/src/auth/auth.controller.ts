@@ -8,13 +8,14 @@ import {
   Req,
   Res,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
   async login(@Body() body: { email: string; password: string }) {
@@ -25,6 +26,7 @@ export class AuthController {
   async register(@Body() body: { name: string; email: string; password: string }) {
     return this.authService.register(body.name, body.email, body.password);
   }
+
   @Get('verify')
   async verify(@Headers('authorization') auth: string) {
     if (!auth || !auth.startsWith('Bearer ')) {
@@ -32,6 +34,26 @@ export class AuthController {
     }
     const token = auth.split(' ')[1];
     return this.authService.verifyToken(token);
+  }
+
+  // Solicitar recuperación de contraseña
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  // Verificar token de reset
+  @Get('verify-reset-token')
+  async verifyResetToken(@Query('token') token: string) {
+    return this.authService.verifyResetToken(token);
+  }
+
+  //Restablecer contraseña
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: { token: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 
   @Get('google')
