@@ -1,20 +1,23 @@
 "use client";
-import { useSearchParams } from "next/navigation";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import "./login.css";
 import Link from "next/link";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
+import "./login.css";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const searchParams = useSearchParams();
+  const [openForgotPassword, setOpenForgotPassword] = useState(false);
+  
   const redirectTo = searchParams.get("redirect") || "/";
-
-  const { login } = useAuth();
 
   // Estados de error
   const [errors, setErrors] = useState({
@@ -62,7 +65,7 @@ export default function LoginPage() {
       setErrors(prev => ({
         ...prev,
         email: validateEmail(value),
-        general: "" // Limpiar error general al escribir
+        general: ""
       }));
     }
   };
@@ -77,7 +80,7 @@ export default function LoginPage() {
       setErrors(prev => ({
         ...prev,
         password: validatePassword(value),
-        general: "" // Limpiar error general al escribir
+        general: ""
       }));
     }
   };
@@ -117,19 +120,19 @@ export default function LoginPage() {
 
       // Detectar tipo de error
       if (errorMessage.toLowerCase().includes("usuario no encontrado") ||
-        errorMessage.toLowerCase().includes("no encontrado")) {
+          errorMessage.toLowerCase().includes("no encontrado")) {
         setErrors(prev => ({
           ...prev,
           email: "No existe una cuenta con este email"
         }));
       } else if (errorMessage.toLowerCase().includes("contraseña") ||
-        errorMessage.toLowerCase().includes("incorrecta")) {
+                 errorMessage.toLowerCase().includes("incorrecta")) {
         setErrors(prev => ({
           ...prev,
           password: "La contraseña es incorrecta"
         }));
       } else {
-        // Error general (problemas de conexión, etc.)
+        // Error general (problemas de conexión, servidor, etc.)
         setErrors(prev => ({
           ...prev,
           general: errorMessage
@@ -146,7 +149,7 @@ export default function LoginPage() {
 
       <form className="login-form" onSubmit={handleLogin} noValidate>
 
-        {/* Error general (problemas de conexión, servidor, etc.) */}
+        {/* Error general */}
         {errors.general && (
           <div style={{
             backgroundColor: "#fee",
@@ -187,7 +190,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Campo Contraseña */}
         <div style={{ marginBottom: "4px", marginTop: "12px" }}>Contraseña</div>
         <div className="input-wrapper">
           <input
@@ -225,9 +227,19 @@ export default function LoginPage() {
           {loading ? "Cargando..." : "Iniciar sesión"}
         </button>
 
-        <a href="#" className="forgot-pass-link">
+        <button
+          type="button"
+          onClick={() => setOpenForgotPassword(true)}
+          className="forgot-pass-link"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
           Olvidé mi contraseña
-        </a>
+        </button>
       </form>
 
       <p>
@@ -242,7 +254,7 @@ export default function LoginPage() {
         <button 
           className="social-button"
           onClick={() => {
-            window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+            window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/auth/google`;
           }}
           type="button"
         >
@@ -255,6 +267,10 @@ export default function LoginPage() {
           Continue con Apple
         </button>
       </div>
+      <ForgotPasswordModal
+        open={openForgotPassword}
+        onClose={() => setOpenForgotPassword(false)}
+      />
     </div>
   );
 }

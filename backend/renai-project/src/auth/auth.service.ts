@@ -6,8 +6,9 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument } from './user.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -187,43 +188,37 @@ export class AuthService {
     }
   }
 
-  //  NUEVO: Método para autenticación con Google
   async googleLogin(googleUser: any) {
     try {
       const { googleId, email, name, picture } = googleUser;
 
       console.log('Intentando login con Google:', { email, name });
 
-      // Buscar usuario existente por email
       let user = await this.userModel.findOne({ email });
 
       if (!user) {
-        //  PRIMER INGRESO: Crear nuevo usuario automáticamente
         console.log('Usuario nuevo, creando perfil...');
         user = new this.userModel({
           name,
           email,
-          password: '', // Sin password porque usa Google
+          password: '',
           googleId,
           picture,
         });
         await user.save();
         console.log('✅ Perfil creado automáticamente:', email);
       } else if (!user.googleId) {
-        // Usuario existe con email/password, vincular con Google
         console.log('Usuario existente, vinculando con Google...');
         user.googleId = googleId;
         if (picture) user.picture = picture;
         await user.save();
         console.log('✅ Cuenta vinculada con Google:', email);
       } else {
-        // Usuario ya tenía Google OAuth
         console.log('✅ Usuario Google existente:', email);
       }
 
       const userId = (user._id as Types.ObjectId).toString();
 
-      // Token con duración más larga para SSO
       const token = jwt.sign(
         { id: userId, email: user.email },
         process.env.JWT_SECRET || 'SECRET_KEY',
@@ -245,27 +240,23 @@ export class AuthService {
       throw new InternalServerErrorException('Error al autenticar con Google');
     }
   }
-  // ✅ NUEVO: Método para establecer contraseña
+
   async setPassword(token: string, newPassword: string) {
     try {
-      // Validar que la contraseña tenga al menos 6 caracteres
       if (!newPassword || newPassword.length < 6) {
         throw new UnauthorizedException('La contraseña debe tener al menos 6 caracteres');
       }
 
-      // Decodificar el token para obtener el ID del usuario
       const decoded = jwt.verify(
         token,
         process.env.JWT_SECRET || 'SECRET_KEY',
       ) as { id: string; email: string };
 
-      // Buscar el usuario
       const user = await this.userModel.findById(decoded.id);
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
 
-      // Hash de la nueva contraseña
       const hashed = await bcrypt.hash(newPassword, 10);
       user.password = hashed;
       await user.save();
@@ -291,6 +282,134 @@ export class AuthService {
       }
 
       throw new InternalServerErrorException('Error al establecer contraseña');
+    }
+  }
+
+  // ✅ NUEVO: Solicitar recuperación de contraseña
+  async forgotPassword(email: string) {
+    try {
+      const user = await this.userModel.findOne({ 
+        email: email.toLowerCase().trim() 
+      });
+
+      if (!user) {
+        // Por seguridad, no revelar si el email existe o no
+        return {
+          success: true,
+          message: 'Si el email existe, recibirás un correo de recuperación',
+        };
+      }
+
+      // Generar token aleatorio
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Hash del token para guardarlo de forma segura
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+
+      // Guardar token y expiración (1 hora)
+      user.resetPasswordToken = hashedToken;
+      user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
+      await user.save();
+
+      // Construir URL de reset
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
+
+      // TODO: Enviar email (implementar con tu servicio de correo)
+      console.log('📧 ===== EMAIL DE RECUPERACIÓN =====');
+      console.log('Para:', email);
+      console.log('🔗 URL de recuperación:', resetUrl);
+      console.log('⏰ Expira en: 1 hora');
+      console.log('====================================');
+
+      return {
+        success: true,
+        message: 'Si el email existe, recibirás un correo de recuperación',
+        // SOLO PARA DESARROLLO - ELIMINAR EN PRODUCCIÓN:
+        resetUrl: resetUrl,
+      };
+    } catch (error) {
+      console.error('Error en forgotPassword:', error);
+      throw new InternalServerErrorException('Error al procesar la solicitud');
+    }
+  }
+
+  // ✅ NUEVO: Verificar si un token es válido
+  async verifyResetToken(token: string) {
+    try {
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      const user = await this.userModel.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: new Date() },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Token inválido o expirado');
+      }
+
+      return {
+        valid: true,
+        email: user.email,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
+  }
+
+  // ✅ NUEVO: Restablecer contraseña
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      // Validar contraseña
+      if (!newPassword || newPassword.length < 6) {
+        throw new UnauthorizedException(
+          'La contraseña debe tener al menos 6 caracteres',
+        );
+      }
+
+      // Hash del token
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      // Buscar usuario con token válido
+      const user = await this.userModel.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: new Date() },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Token inválido o expirado');
+      }
+
+      // Hash de la nueva contraseña
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Actualizar contraseña y limpiar token
+      user.password = hashedPassword;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+
+      console.log('✅ Contraseña restablecida para:', user.email);
+
+      return {
+        success: true,
+        message: 'Contraseña restablecida correctamente',
+      };
+    } catch (error: unknown) {
+      console.error('Error en resetPassword:', error);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al restablecer contraseña');
     }
   }
 }
