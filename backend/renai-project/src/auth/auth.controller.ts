@@ -23,7 +23,9 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: { name: string; email: string; password: string }) {
+  async register(
+    @Body() body: { name: string; email: string; password: string },
+  ) {
     return this.authService.register(body.name, body.email, body.password);
   }
 
@@ -50,9 +52,7 @@ export class AuthController {
 
   //Restablecer contraseña
   @Post('reset-password')
-  async resetPassword(
-    @Body() body: { token: string; newPassword: string },
-  ) {
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
     return this.authService.resetPassword(body.token, body.newPassword);
   }
 

@@ -12,9 +12,9 @@ export interface JwtError extends Error {
 export function isJwtError(error: unknown): error is JwtError {
   return (
     error instanceof Error &&
-    ('name' in error) &&
+    'name' in error &&
     (error.name === 'JsonWebTokenError' ||
-     error.name === 'TokenExpiredError' ||
-     error.name === 'NotBeforeError')
+      error.name === 'TokenExpiredError' ||
+      error.name === 'NotBeforeError')
   );
 }
