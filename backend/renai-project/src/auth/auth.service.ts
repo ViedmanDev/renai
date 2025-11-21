@@ -12,7 +12,7 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) { }
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async login(email: string, password: string) {
     try {
@@ -56,10 +56,14 @@ export class AuthService {
         throw new UnauthorizedException('El nombre es requerido');
       }
       if (name.trim().length < 2) {
-        throw new UnauthorizedException('El nombre debe tener al menos 2 caracteres');
+        throw new UnauthorizedException(
+          'El nombre debe tener al menos 2 caracteres',
+        );
       }
       if (name.trim().length > 50) {
-        throw new UnauthorizedException('El nombre no puede tener más de 50 caracteres');
+        throw new UnauthorizedException(
+          'El nombre no puede tener más de 50 caracteres',
+        );
       }
 
       // Validar email
@@ -79,7 +83,9 @@ export class AuthService {
         throw new UnauthorizedException('La contraseña es requerida');
       }
       if (password.length < 6) {
-        throw new UnauthorizedException('La contraseña debe tener al menos 6 caracteres');
+        throw new UnauthorizedException(
+          'La contraseña debe tener al menos 6 caracteres',
+        );
       }
       if (password.length > 100) {
         throw new UnauthorizedException('La contraseña es demasiado larga');
@@ -89,18 +95,26 @@ export class AuthService {
       const hasLetter = /[a-zA-Z]/.test(password);
       const hasNumber = /[0-9]/.test(password);
       if (!hasLetter || !hasNumber) {
-        throw new UnauthorizedException('La contraseña debe contener letras y números');
+        throw new UnauthorizedException(
+          'La contraseña debe contener letras y números',
+        );
       }
 
       // Contraseñas débiles comunes
-      const weakPasswords = ['123456', 'password', 'qwerty', '111111', 'abc123'];
+      const weakPasswords = [
+        '123456',
+        'password',
+        'qwerty',
+        '111111',
+        'abc123',
+      ];
       if (weakPasswords.includes(password.toLowerCase())) {
         throw new UnauthorizedException('Esta contraseña es demasiado débil');
       }
 
       // Verificar si el usuario ya existe
       const existing = await this.userModel.findOne({
-        email: email.toLowerCase().trim()
+        email: email.toLowerCase().trim(),
       });
       if (existing) {
         throw new UnauthorizedException('El usuario ya existe');
@@ -111,7 +125,7 @@ export class AuthService {
       const newUser = new this.userModel({
         name: name.trim(),
         email: email.toLowerCase().trim(),
-        password: hashed
+        password: hashed,
       });
       const savedUser = await newUser.save();
 
@@ -244,7 +258,9 @@ export class AuthService {
   async setPassword(token: string, newPassword: string) {
     try {
       if (!newPassword || newPassword.length < 6) {
-        throw new UnauthorizedException('La contraseña debe tener al menos 6 caracteres');
+        throw new UnauthorizedException(
+          'La contraseña debe tener al menos 6 caracteres',
+        );
       }
 
       const decoded = jwt.verify(
@@ -276,7 +292,10 @@ export class AuthService {
 
       if (error && typeof error === 'object' && 'name' in error) {
         const err = error as { name: string };
-        if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+        if (
+          err.name === 'JsonWebTokenError' ||
+          err.name === 'TokenExpiredError'
+        ) {
           throw new UnauthorizedException('Token inválido o expirado');
         }
       }
@@ -288,8 +307,8 @@ export class AuthService {
   // ✅ NUEVO: Solicitar recuperación de contraseña
   async forgotPassword(email: string) {
     try {
-      const user = await this.userModel.findOne({ 
-        email: email.toLowerCase().trim() 
+      const user = await this.userModel.findOne({
+        email: email.toLowerCase().trim(),
       });
 
       if (!user) {
@@ -302,7 +321,7 @@ export class AuthService {
 
       // Generar token aleatorio
       const resetToken = crypto.randomBytes(32).toString('hex');
-      
+
       // Hash del token para guardarlo de forma segura
       const hashedToken = crypto
         .createHash('sha256')

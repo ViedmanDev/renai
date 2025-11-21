@@ -1,4 +1,235 @@
-import { Controller } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+import { ProjectsPermissionsService } from './projects-permissions.service';
+import { ProjectVisibility, ProjectRole } from '../schemas/project.schema';
+import * as jwt from 'jsonwebtoken';
 
 @Controller('projects')
-export class ProjectsController {}
+export class ProjectsController {
+  constructor(
+    private projectsService: ProjectsService,
+    private permissionsService: ProjectsPermissionsService,
+  ) {}
+
+  // Método auxiliar para extraer userId del token
+  private getUserIdFromToken(authHeader: string): string {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'SECRET_KEY',
+    ) as { id: string; email: string };
+
+    return decoded.id;
+  }
+
+  /**
+   * Crear nuevo proyecto
+   */
+  @Post()
+  async create(
+    @Headers('authorization') auth: string,
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      coverImage?: string;
+      fromTemplate?: boolean;
+    },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.projectsService.create(
+      body.name,
+      userId,
+      body.description,
+      body.coverImage,
+      body.fromTemplate,
+    );
+  }
+
+  /**
+   * Obtener todos los proyectos del usuario
+   */
+  @Get()
+  async findAll(@Headers('authorization') auth: string) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.projectsService.findUserProjects(userId);
+  }
+
+  /**
+   * Obtener un proyecto por ID
+   */
+  @Get(':id')
+  async findOne(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+
+    // Verificar acceso
+    await this.permissionsService.requireAccess(id, userId);
+
+    return this.projectsService.findOne(id, userId);
+  }
+
+  /**
+   * Obtener proyecto por slug público
+   */
+  @Get('public/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    return this.projectsService.findBySlug(slug);
+  }
+
+  /**
+   * Actualizar proyecto
+   */
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() updates: any,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+
+    // Verificar permiso de edición
+    await this.permissionsService.requireEdit(id, userId);
+
+    return this.projectsService.update(id, updates);
+  }
+
+  /**
+   * Actualizar detalles seleccionados
+   */
+  @Patch(':id/details')
+  async updateDetails(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { selectedDetails: any[] },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireEdit(id, userId);
+
+    return this.projectsService.updateSelectedDetails(id, body.selectedDetails);
+  }
+
+  /**
+   * Eliminar proyecto
+   */
+  @Delete(':id')
+  async delete(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.projectsService.delete(id, userId);
+  }
+
+  // ========== ENDPOINTS DE PRIVACIDAD ==========
+
+  /**
+   * Cambiar visibilidad del proyecto
+   */
+  @Patch(':id/visibility')
+  async changeVisibility(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { visibility: ProjectVisibility },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.changeVisibility(
+      id,
+      userId,
+      body.visibility,
+    );
+  }
+
+  /**
+   * Generar slug público
+   */
+  @Post(':id/public-link')
+  async generatePublicLink(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireOwner(id, userId);
+
+    const slug = await this.projectsService.generatePublicSlug(id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    return {
+      slug,
+      publicUrl: `${frontendUrl}/public/project/${slug}`,
+    };
+  }
+
+  /**
+   * Otorgar permiso a un usuario
+   */
+  @Post(':id/permissions')
+  async grantPermission(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { email: string; role: ProjectRole },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.grantPermission(
+      id,
+      userId,
+      body.email,
+      body.role,
+    );
+  }
+
+  /**
+   * Revocar permiso de un usuario
+   */
+  @Delete(':id/permissions/:userId')
+  async revokePermission(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.revokePermission(id, userId, targetUserId);
+  }
+
+  /**
+   * Obtener usuarios con acceso al proyecto
+   */
+  @Get(':id/users')
+  async getProjectUsers(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.getProjectUsers(id, userId);
+  }
+
+  /**
+   * Obtener rol del usuario actual en el proyecto
+   */
+  @Get(':id/my-role')
+  async getMyRole(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    const role = await this.permissionsService.getUserRole(id, userId);
+
+    return { role };
+  }
+}
