@@ -1,3 +1,4 @@
+// users.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -18,27 +19,29 @@ export class UsersService {
   ) {}
 
   private generateToken() {
-    return crypto.randomBytes(32).toString('hex'); // 64 chars
+    return crypto.randomBytes(32).toString('hex');
   }
 
   async createUser(name: string, email: string, password: string) {
     const existing = await this.userModel.findOne({ email }).exec();
     if (existing) throw new BadRequestException('Email ya registrado');
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const token = this.generateToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await this.userModel.create({
       name,
       email,
-      passwordHash,
+      password: hashedPassword,
       isEmailVerified: false,
       emailVerificationToken: token,
       emailVerificationTokenExpiresAt: expiresAt,
     });
 
     await this.mailer.sendVerificationEmail(email, token);
+
     return { id: user._id, email: user.email };
   }
 
@@ -62,11 +65,9 @@ export class UsersService {
   async verifyEmail(token: string) {
     if (!token) throw new BadRequestException('Token requerido');
 
-    const user = await this.userModel
-      .findOne({
-        emailVerificationToken: token,
-      })
-      .exec();
+    const user = await this.userModel.findOne({
+      emailVerificationToken: token,
+    });
 
     if (!user) throw new BadRequestException('Token inválido o ya usado');
 

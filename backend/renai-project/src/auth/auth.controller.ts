@@ -1,3 +1,4 @@
+// auth.controller.ts
 import {
   Controller,
   Post,
@@ -38,19 +39,16 @@ export class AuthController {
     return this.authService.verifyToken(token);
   }
 
-  // Solicitar recuperación de contraseña
   @Post('forgot-password')
   async forgotPassword(@Body() body: { email: string }) {
     return this.authService.forgotPassword(body.email);
   }
 
-  // Verificar token de reset
   @Get('verify-reset-token')
   async verifyResetToken(@Query('token') token: string) {
     return this.authService.verifyResetToken(token);
   }
 
-  //Restablecer contraseña
   @Post('reset-password')
   async resetPassword(@Body() body: { token: string; newPassword: string }) {
     return this.authService.resetPassword(body.token, body.newPassword);
