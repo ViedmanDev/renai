@@ -1,55 +1,67 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { Box, Container, Typography, IconButton, Button, Avatar } from "@mui/material"
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
-import AppsIcon from "@mui/icons-material/Apps"
-import EditIcon from "@mui/icons-material/Edit"
-import AddIcon from "@mui/icons-material/Add"
-import { useProjects } from "@/contexts/ProjectContext"
-import DetailTypeSelector from "@/components/DetailTypeSelector"
-import SubOptionsModal from "@/components/SubOptionsModal"
+import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import {
+  Box,
+  Container,
+  Typography,
+  IconButton,
+  Button,
+  Avatar,
+} from "@mui/material";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import AppsIcon from "@mui/icons-material/Apps";
+import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import { useProjects } from "@/contexts/ProjectContext";
+import DetailTypeSelector from "@/components/DetailTypeSelector";
+import SubOptionsModal from "@/components/SubOptionsModal";
 
 export default function ProjectDetailsPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { currentProject, selectedDetails, setSelectedDetails, reorderDetails } = useProjects()
-  const [openSubOptions, setOpenSubOptions] = useState(false)
-  const [currentDetailType, setCurrentDetailType] = useState(null)
+  const router = useRouter();
+  const params = useParams();
+  const {
+    currentProject,
+    selectedDetails,
+    setSelectedDetails,
+    reorderDetails,
+  } = useProjects();
+  const [openSubOptions, setOpenSubOptions] = useState(false);
+  const [currentDetailType, setCurrentDetailType] = useState(null);
 
   const handleDetailToggle = (detailType) => {
-    const exists = selectedDetails.find((d) => d.id === detailType.id)
+    const exists = selectedDetails.find((d) => d.id === detailType.id);
     if (exists) {
-      setSelectedDetails(selectedDetails.filter((d) => d.id !== detailType.id))
+      setSelectedDetails(selectedDetails.filter((d) => d.id !== detailType.id));
     } else {
-      setSelectedDetails([...selectedDetails, detailType])
+      setSelectedDetails([...selectedDetails, detailType]);
     }
-  }
+  };
 
   const handleOpenSubOptions = (detailType) => {
-    setCurrentDetailType(detailType)
-    setOpenSubOptions(true)
-  }
+    setCurrentDetailType(detailType);
+    setOpenSubOptions(true);
+  };
 
   const handleConfirmSubOption = (detailWithOption) => {
-    const exists = selectedDetails.find((d) => d.id === detailWithOption.id)
+    const exists = selectedDetails.find((d) => d.id === detailWithOption.id);
     if (!exists) {
-      setSelectedDetails([...selectedDetails, detailWithOption])
+      setSelectedDetails([...selectedDetails, detailWithOption]);
     }
-    setOpenSubOptions(false)
-    setCurrentDetailType(null)
-  }
+    setOpenSubOptions(false);
+    setCurrentDetailType(null);
+  };
 
   const handleSaveAndContinue = () => {
     if (selectedDetails.length > 0) {
-      router.push(`/project/${params.id}/canvas`)
+      router.push(`/project/${params.id}/canvas`);
     }
-  }
+  };
 
   const handleReorderDetails = (sourceIndex, destinationIndex) => {
-    reorderDetails(sourceIndex, destinationIndex)
-  }
+    reorderDetails(sourceIndex, destinationIndex);
+  };
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa" }}>
@@ -70,7 +82,9 @@ export default function ProjectDetailsPage() {
             <AppsIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
-          <Typography variant="body1">{currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}</Typography>
+          <Typography variant="body1">
+            {currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}
+          </Typography>
           <Avatar sx={{ bgcolor: "#5e35b1" }}>J</Avatar>
         </Box>
       </Box>
@@ -95,7 +109,9 @@ export default function ProjectDetailsPage() {
               mb: 4,
             }}
           >
-            <Typography variant="h6">{currentProject?.name || "Proyecto demo"}</Typography>
+            <Typography variant="h6">
+              {currentProject?.name || "Proyecto demo"}
+            </Typography>
             <IconButton size="small">
               <EditIcon fontSize="small" />
             </IconButton>
@@ -142,5 +158,5 @@ export default function ProjectDetailsPage() {
         onConfirm={handleConfirmSubOption}
       />
     </Box>
-  )
+  );
 }

@@ -77,6 +77,8 @@ export const DETAIL_TYPES = {
     icon: "📊",
     requiresValue: false,
   },
+  // a la espera de correccion en el frontend
+  /*
   BANDERA: {
     id: "bandera",
     name: "Bandera",
@@ -85,6 +87,7 @@ export const DETAIL_TYPES = {
     icon: "🚩",
     requiresValue: false,
   },
+  */
   TEXTO: {
     id: "texto",
     name: "Texto",
@@ -140,6 +143,8 @@ export const DETAIL_TYPES = {
     requiresValue: true,
     valueType: "date",
   },
+  // a la espera de correccion en el frontend
+  /*
   ADJUNTOS: {
     id: "adjuntos",
     name: "Adjuntos",
@@ -147,6 +152,9 @@ export const DETAIL_TYPES = {
     icon: "📎",
     requiresValue: false,
   },
+  */
+  // a la espera de correccion en el frontend
+  /*
   DESDE_LISTAS: {
     id: "desde_listas",
     name: "Desde Listas",
@@ -155,6 +163,7 @@ export const DETAIL_TYPES = {
     icon: "📋",
     requiresValue: false,
   },
+  */
   NOTA_INTERNA: {
     id: "nota_interna",
     name: "Nota interna",
@@ -180,7 +189,7 @@ export const DETAIL_TYPES = {
     valueType: "number",
     isSpecial: true,
   },
-}
+};
 
 /**
  * Banderas predefinidas del sistema
@@ -196,7 +205,7 @@ export const PREDEFINED_FLAGS = [
   { id: "factibilidad", name: "Factibilidad", color: "#10b981" },
   { id: "poai_2025", name: "POAI 2025", color: "#ef4444" },
   { id: "emprestito", name: "Emprestito", color: "#f59e0b" },
-]
+];
 
 /**
  * Listas predefinidas del sistema
@@ -215,4 +224,4 @@ export const PREDEFINED_LISTS = {
     { id: "ent1", name: "Entidad 1" },
     { id: "ent2", name: "Entidad 2" },
   ],
-}
+};
