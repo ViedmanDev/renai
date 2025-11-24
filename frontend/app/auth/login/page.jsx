@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
-import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 import "./login.css";
 
 export default function LoginPage() {
@@ -15,7 +14,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [openForgotPassword, setOpenForgotPassword] = useState(false);
   
   const redirectTo = searchParams.get("redirect") || "/";
 
@@ -229,7 +227,7 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={() => setOpenForgotPassword(true)}
+          onClick={() => router.push("/auth/login/forget-password")}
           className="forgot-pass-link"
           style={{
             background: "none",
@@ -267,10 +265,6 @@ export default function LoginPage() {
           Continue con Apple
         </button>
       </div>
-      <ForgotPasswordModal
-        open={openForgotPassword}
-        onClose={() => setOpenForgotPassword(false)}
-      />
     </div>
   );
 }
