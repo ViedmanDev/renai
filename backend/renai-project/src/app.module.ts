@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { UsersModule } from './users/users.module';
 import { MailerService } from './mailer/mailer.service';
+import { FoldersModule } from './folders/folders.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { MailerService } from './mailer/mailer.service';
     UsersModule,
     AuthModule,
     ProjectsModule,
+    FoldersModule,
   ],
   providers: [MailerService],
 })

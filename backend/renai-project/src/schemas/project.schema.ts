@@ -70,6 +70,10 @@ export class Project {
 
   @Prop()
   lastAccessedAt?: Date;
+
+  //Project schema para incluir folderId
+  @Prop({ type: Types.ObjectId, ref: 'Folder', default: null })
+  folderId: Types.ObjectId | null;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
