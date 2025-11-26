@@ -1,21 +1,4 @@
 "use client";
-
-/**
- * COMPONENTE: ProjectCanvasPage
- * PROPÓSITO: Vista final del proyecto mostrando todos los detalles configurados
- *
- * FUNCIONALIDADES:
- * - Visualización de detalles con valores formateados
- * - Drag and drop para reordenar detalles
- * - Edición de detalles mediante modal
- *  * - Búsqueda de detalles por banderas
- * - Navegación de regreso al inicio
- *
- * CONEXIÓN A BD:
- * Lee de: projects, project_details, project_detail_configs
- * Actualiza: project_details (orden), project_detail_configs (configuración)
- */
-
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -42,15 +25,20 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import DeleteIcon from "@mui/icons-material/Delete";
+import HomeIcon from "@mui/icons-material/Home";
+import CloseIcon from "@mui/icons-material/Close";
+import SearchIcon from "@mui/icons-material/Search";
+import LockIcon from "@mui/icons-material/Lock";
+import GroupIcon from "@mui/icons-material/Group";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useProjects } from "@/contexts/ProjectContext";
 import DetailFieldsSidebar from "@/components/DetailFieldsSidebar";
 import DetailConfigModal from "@/components/DetailConfigModal";
 import AdminDrawer from "@/components/AdminDrawer";
 import TaskManager from "@/components/TaskManager";
-import HomeIcon from "@mui/icons-material/Home";
-import CloseIcon from "@mui/icons-material/Close";
-import SearchIcon from "@mui/icons-material/Search";
+import ProjectPrivacySettings from "@/components/ProjectPrivacySettings";
+import ProjectCollaborators from "@/components/ProjectCollaborators";
+import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -74,6 +62,10 @@ export default function ProjectCanvasPage() {
   const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
   const [openTaskManager, setOpenTaskManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
+  
+  // Estados para privacidad y colaboradores
+  const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
+  const [openCollaborators, setOpenCollaborators] = useState(false);
 
   useEffect(() => {
     if (currentProject) {
@@ -344,7 +336,43 @@ export default function ProjectCanvasPage() {
           >
             <HomeIcon />
           </IconButton>
+
+          {/* Botones de privacidad y colaboradores */}
+          <IconButton
+            onClick={() => setOpenPrivacySettings(true)}
+            title="Configuración de privacidad"
+            size="small"
+            sx={{ 
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <LockIcon fontSize="small" />
+          </IconButton>
+          
+          <IconButton
+            onClick={() => setOpenCollaborators(true)}
+            title="Gestionar colaboradores"
+            size="small"
+            sx={{ 
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <GroupIcon fontSize="small" />
+          </IconButton>
+
           <Box sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: "auto" } }} />
+          
+          {/* NUEVO: Badge de privacidad */}
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <ProjectPrivacyBadge
+              key={currentProject?.visibility}
+              visibility={currentProject?.visibility || 'private'}
+              size="small"
+            />
+          </Box>
+
           <Typography
             variant="body1"
             sx={{
@@ -858,6 +886,22 @@ export default function ProjectCanvasPage() {
           <Button onClick={() => setOpenTaskManager(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* NUEVO: Modales de privacidad y colaboradores */}
+      <ProjectPrivacySettings
+        open={openPrivacySettings}
+        onClose={() => setOpenPrivacySettings(false)}
+        project={currentProject}
+        onUpdate={(updatedProject) => {
+          console.log("Proyecto actualizado:", updatedProject);
+        }}
+      />
+
+      <ProjectCollaborators
+        open={openCollaborators}
+        onClose={() => setOpenCollaborators(false)}
+        project={currentProject}
+      />
     </Box>
   );
 }
