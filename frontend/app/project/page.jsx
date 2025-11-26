@@ -12,6 +12,8 @@ import {
   Avatar,
   Button,
   Typography,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -29,7 +31,8 @@ import FoldersSidebar from "@/components/FoldersSidebar";
 
 export default function HomePage() {
   const router = useRouter();
-  const { projects, createProject, setCurrentProject, reorderProjects } = useProjects();
+  const { projects, createProject, setCurrentProject, reorderProjects } =
+    useProjects();
   const { user, logout } = useAuth();
   const { moveProjectToFolder, getProjectsByFolder } = useFolders();
 
@@ -40,43 +43,50 @@ export default function HomePage() {
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [filteredProjects, setFilteredProjects] = useState([]);
 
+  // Estados para notificaciones
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
   // Cargar proyectos del backend
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        if (!token || token === "undefined" || token === "null") {
-          console.log("⚠️ No hay token válido, omitiendo carga de proyectos");
-          setLoadingProjects(false);
-          return;
-        }
-
-        const res = await fetch(`${API_URL}/projects`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          console.log("✅ Proyectos cargados del backend:", data);
-          setRealProjects(data);
-        } else {
-          console.log("⚠️ Error al cargar proyectos:", res.status);
-          if (res.status === 401) {
-            localStorage.removeItem("token");
-          }
-        }
-      } catch (error) {
-        console.error("Error cargando proyectos:", error);
-      } finally {
+      if (!token || token === "undefined" || token === "null") {
+        console.log("⚠️ No hay token válido, omitiendo carga de proyectos");
         setLoadingProjects(false);
+        return;
       }
-    };
 
+      const res = await fetch(`${API_URL}/projects`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log("✅ Proyectos cargados del backend:", data);
+        setRealProjects(data);
+      } else {
+        console.log("⚠️ Error al cargar proyectos:", res.status);
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando proyectos:", error);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProjects();
   }, [API_URL]);
 
@@ -104,21 +114,82 @@ export default function HomePage() {
     }
   };
 
-  const handleCreateProject = (projectData) => {
-    const newProject = createProject(projectData);
-    setCurrentProject(newProject);
-    setOpenModal(false);
-    router.push(`/project/${newProject.id}/details`);
+  // ✅ FUNCIÓN ACTUALIZADA - Ahora crea el proyecto en el backend
+  const handleCreateProject = async (projectData) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setNotification({
+          open: true,
+          message: "No hay sesión activa. Por favor inicia sesión.",
+          severity: "error",
+        });
+        return;
+      }
+
+      console.log("📤 Enviando proyecto al backend:", projectData);
+
+      // Hacer petición POST al backend
+      const res = await fetch(`${API_URL}/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: projectData.name,
+          description: projectData.description,
+          coverImage: projectData.coverImage,
+          fromTemplate: projectData.fromTemplate || false,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al crear proyecto");
+      }
+
+      const newProject = await res.json();
+      console.log("✅ Proyecto creado en MongoDB Atlas:", newProject);
+
+      // Mostrar notificación de éxito
+      setNotification({
+        open: true,
+        message: "Proyecto creado exitosamente",
+        severity: "success",
+      });
+
+      // Actualizar contexto local (opcional, para compatibilidad)
+      createProject(projectData);
+
+      // Recargar proyectos desde el backend
+      await fetchProjects();
+
+      // Cerrar modal
+      setOpenModal(false);
+
+      // Redirigir al proyecto creado
+      setCurrentProject(newProject);
+      router.push(`/project/${newProject._id}/details`);
+    } catch (error) {
+      console.error("❌ Error al crear proyecto:", error);
+      setNotification({
+        open: true,
+        message: error.message || "Error al crear el proyecto",
+        severity: "error",
+      });
+    }
   };
 
   const handleViewProject = (project) => {
     setCurrentProject(project);
-    router.push(`/project/${project.id}`);
+    router.push(`/project/${project.id || project._id}`);
   };
 
   const handleEditProject = (project) => {
     setCurrentProject(project);
-    router.push(`/project/${project.id}/details`);
+    router.push(`/project/${project.id || project._id}/details`);
   };
 
   const handleDragEnd = async (result) => {
@@ -129,21 +200,25 @@ export default function HomePage() {
     // Si se mueve a una carpeta diferente
     if (destination.droppableId !== source.droppableId) {
       const projectId = draggableId;
-      const newFolderId = destination.droppableId === "root" ? null : destination.droppableId;
+      const newFolderId =
+        destination.droppableId === "root" ? null : destination.droppableId;
 
       try {
         await moveProjectToFolder(projectId, newFolderId);
-        
+
         // Recargar proyectos
         if (selectedFolderId === null) {
-          // Recargar todos
-          window.location.reload();
+          await fetchProjects();
         } else {
           loadProjectsByFolder(selectedFolderId);
         }
       } catch (error) {
         console.error("Error moviendo proyecto:", error);
-        alert("Error al mover el proyecto: " + error.message);
+        setNotification({
+          open: true,
+          message: "Error al mover el proyecto: " + error.message,
+          severity: "error",
+        });
       }
     } else {
       // Reordenar dentro de la misma carpeta
@@ -159,6 +234,10 @@ export default function HomePage() {
 
   const handleSelectFolder = (folderId) => {
     setSelectedFolderId(folderId);
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   return (
@@ -369,6 +448,22 @@ export default function HomePage() {
           console.log("Contraseña establecida exitosamente");
         }}
       />
+
+      {/* Notificaciones */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
