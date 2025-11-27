@@ -10,10 +10,14 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from '../schemas/user.schema';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private readonly mailerService: MailerService,
+  ) {}
 
   async login(email: string, password: string) {
     try {
@@ -131,12 +135,13 @@ export class AuthService {
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
-      console.log('📧 URL de recuperación:', resetUrl);
+
+      await this.mailerService.sendResetPasswordEmail(user.email, resetUrl);
+      console.log('📧 Correo de recuperación enviado a:', user.email);
 
       return {
         success: true,
         message: 'Si el email existe, recibirás un correo de recuperación',
-        resetUrl,
       };
     } catch (error) {
       console.error('Error en forgotPassword:', error);

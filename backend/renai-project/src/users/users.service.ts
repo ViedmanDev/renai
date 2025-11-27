@@ -1,4 +1,3 @@
-// users.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -8,13 +7,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../schemas/user.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private mailer: MailerService,
   ) {}
 
@@ -26,22 +25,20 @@ export class UsersService {
     const existing = await this.userModel.findOne({ email }).exec();
     if (existing) throw new BadRequestException('Email ya registrado');
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    const passwordHash = await bcrypt.hash(password, 10);
     const token = this.generateToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await this.userModel.create({
       name,
       email,
-      password: hashedPassword,
+      password: passwordHash,
       isEmailVerified: false,
       emailVerificationToken: token,
-      emailVerificationTokenExpiresAt: expiresAt,
+      emailVerificationExpires: expiresAt,
     });
 
     await this.mailer.sendVerificationEmail(email, token);
-
     return { id: user._id, email: user.email };
   }
 
@@ -53,9 +50,7 @@ export class UsersService {
 
     const token = this.generateToken();
     user.emailVerificationToken = token;
-    user.emailVerificationTokenExpiresAt = new Date(
-      Date.now() + 24 * 60 * 60 * 1000,
-    );
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
     await this.mailer.sendVerificationEmail(email, token);
@@ -65,22 +60,21 @@ export class UsersService {
   async verifyEmail(token: string) {
     if (!token) throw new BadRequestException('Token requerido');
 
-    const user = await this.userModel.findOne({
-      emailVerificationToken: token,
-    });
-
+    const user = await this.userModel
+      .findOne({ emailVerificationToken: token })
+      .exec();
     if (!user) throw new BadRequestException('Token inválido o ya usado');
 
     if (
-      !user.emailVerificationTokenExpiresAt ||
-      user.emailVerificationTokenExpiresAt < new Date()
+      !user.emailVerificationExpires ||
+      user.emailVerificationExpires < new Date()
     ) {
       throw new BadRequestException('Token expirado');
     }
 
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
-    user.emailVerificationTokenExpiresAt = undefined;
+    user.emailVerificationExpires = undefined;
     await user.save();
 
     return { ok: true, email: user.email };
