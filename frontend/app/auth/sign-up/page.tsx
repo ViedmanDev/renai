@@ -6,7 +6,7 @@ import Link from "next/link";
 import "../login/login.css";
 
 interface FormData {
-    nombre: string;
+    name: string;
     email: string;
     password: string;
     confirmPassword: string;
@@ -26,7 +26,7 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const [formData, setFormData] = useState<FormData>({
-        nombre: "",
+        name: "",
         email: "",
         password: "",
         confirmPassword: "",
@@ -89,7 +89,7 @@ export default function RegisterPage() {
     // Manejadores de cambio
     const handleNombreChange = (e: ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({ ...prev, nombre: value }));
+        setFormData(prev => ({ ...prev, name: value }));
 
         if (errors.nombre || value) {
             setErrors(prev => ({
@@ -161,7 +161,7 @@ export default function RegisterPage() {
 
     // Validar todo el formulario
     const validateForm = (): boolean => {
-        const nombreError = validateNombre(formData.nombre);
+        const nombreError = validateNombre(formData.name);
         const emailError = validateEmail(formData.email);
         const passwordError = validatePassword(formData.password);
         const confirmPasswordError = validateConfirmPassword(formData.confirmPassword, formData.password);
@@ -197,7 +197,7 @@ export default function RegisterPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    nombre: formData.nombre,
+                    name: formData.name,
                     email: formData.email,
                     password: formData.password
                 })
@@ -262,7 +262,7 @@ export default function RegisterPage() {
                         type="text"
                         placeholder="Ingresa tu nombre"
                         className={`input-field ${errors.nombre ? "input-error" : ""}`}
-                        value={formData.nombre}
+                        value={formData.name}
                         onChange={handleNombreChange}
                         disabled={loading}
                         style={{
