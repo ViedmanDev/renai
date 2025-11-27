@@ -35,6 +35,8 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
+import TaskIcon from "@mui/icons-material/Task";
+import SellIcon from "@mui/icons-material/Sell";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import FlagIcon from "@mui/icons-material/Flag";
@@ -48,6 +50,7 @@ import DetailFieldsSidebar from "@/components/DetailFieldsSidebar";
 import DetailConfigModal from "@/components/DetailConfigModal";
 import AdminDrawer from "@/components/AdminDrawer";
 import TaskManager from "@/components/TaskManager";
+import TagManager from "@/components/TagManager";
 import HomeIcon from "@mui/icons-material/Home";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
@@ -73,6 +76,7 @@ export default function ProjectCanvasPage() {
   );
   const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
   const [openTaskManager, setOpenTaskManager] = useState(false);
+  const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
 
   useEffect(() => {
@@ -469,7 +473,14 @@ export default function ProjectCanvasPage() {
                   onClick={() => setOpenTaskManager(true)}
                   title="Gestionar tareas"
                 >
-                  <AddIcon fontSize="small" />
+                  <TaskIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => setOpenTagManager(true)}
+                  title="Gestionar etiquetas"
+                >
+                  <SellIcon fontSize="small" />
                 </IconButton>
               </Box>
 
@@ -850,12 +861,27 @@ export default function ProjectCanvasPage() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Tareas del Proyecto</DialogTitle>
+        {/* <DialogTitle>Tareas del Proyecto</DialogTitle> */}
         <DialogContent>
           <TaskManager projectId={currentProject?.id} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenTaskManager(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+      {/* Tag Manager Dialog */}
+      <Dialog
+        open={openTagManager}
+        onClose={() => setOpenTagManager(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        {/* <DialogTitle>Etiquetas Nuevas</DialogTitle> */}
+        <DialogContent>
+          <TagManager projectId={currentProject?.id} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTagManager(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>
