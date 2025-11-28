@@ -47,7 +47,7 @@ import CloseIcon from "@mui/icons-material/Close";
 export default function ProjectCanvasPage() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const {
     currentProject,
     setCurrentProject,
@@ -56,6 +56,7 @@ export default function ProjectCanvasPage() {
     updateProject,
     deleteProject,
   } = useProjects();
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [openConfigModal, setOpenConfigModal] = useState(false);
@@ -74,6 +75,22 @@ export default function ProjectCanvasPage() {
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
   const [openCollaborators, setOpenCollaborators] = useState(false);
+
+
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '100vh' 
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   // Cargar proyecto desde backend
   useEffect(() => {
@@ -489,6 +506,7 @@ export default function ProjectCanvasPage() {
           </Button>
           <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
             <Avatar
+              key={user?._id || user?.email || 'no-user'}
               sx={{
                 bgcolor: "#5e35b1",
                 width: { xs: 32, sm: 40 },

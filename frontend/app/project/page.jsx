@@ -18,6 +18,7 @@ import {
   Typography,
   Alert,
   Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -39,9 +40,10 @@ export default function HomePage() {
   const router = useRouter();
   const { projects, createProject, setCurrentProject, reorderProjects } =
     useProjects();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  console.log('🏠 HomePage - user recibido:', user);
+  const [userKey, setUserKey] = useState(0)
   const { moveProjectToFolder, getProjectsByFolder } = useFolders();
-
   const [openModal, setOpenModal] = useState(false);
   const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -64,6 +66,22 @@ export default function HomePage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+    if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '100vh' 
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+
   // Cargar proyectos del backend
   const fetchProjects = async () => {
     try {
@@ -83,7 +101,7 @@ export default function HomePage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ Proyectos cargados del backend:", data);
+        console.log("Proyectos cargados del backend:", data);
         setRealProjects(data);
       } else {
         console.log("⚠️ Error al cargar proyectos:", res.status);
@@ -97,6 +115,18 @@ export default function HomePage() {
       setLoadingProjects(false);
     }
   };
+
+  
+  useEffect(() => {
+    console.log('👤 User cambió en HomePage:', user);
+    console.log('👤 User name:', user?.name);
+    console.log('👤 User _id:', user?._id);
+
+    // Forzar re-render
+    if (user) {
+      setUserKey(prev => prev + 1);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchProjects();
@@ -343,9 +373,14 @@ export default function HomePage() {
             </Button>
 
             {/* Avatar con foto de Google o inicial */}
-            <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture}>
-              {!user?.picture && (user?.name?.charAt(0) || "U")}
-            </Avatar>
+            <IconButton 
+              onClick={() => router.push("/profile")}
+              sx={{ p: 0 }}
+            >
+              <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture} key={`avatar-${userKey}`}>
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </Avatar>
+            </IconButton>
 
             {/* Botón de Logout */}
             <IconButton

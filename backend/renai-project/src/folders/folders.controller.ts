@@ -122,4 +122,4 @@ export class FoldersController {
     const userId = this.getUserIdFromToken(auth);
     return this.foldersService.reorder(userId, body.folderIds);
   }
-}
+};
