@@ -38,36 +38,55 @@ export default function ProjectPrivacySettings({ open, onClose, project, onUpdat
 
     try {
       const projectToUpdate = project || currentProject;
-      
+
       if (!projectToUpdate) {
         throw new Error("No hay proyecto seleccionado");
       }
 
-      const projectId = projectToUpdate.id || projectToUpdate._id;
-      
+      const projectId = projectToUpdate._id || projectToUpdate.id;
+
       if (!projectId) {
         throw new Error("ID de proyecto no disponible");
       }
 
-      console.log('📝 Actualizando visibilidad:', { projectId, visibility });
+      console.log('📝 Guardando visibilidad:', { projectId, visibility });
+
       
-      // Simular delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Actualizar en el ProjectContext
+      const token = localStorage.getItem("token");
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ visibility }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al actualizar en el servidor');
+      }
+
+      const updatedProject = await res.json();
+      console.log('✅ Proyecto actualizado en backend:', updatedProject);
+
+      // Actualizar en el contexto
       updateProject(projectId, { visibility });
-      
-      // Notificar al componente padre
+
+  
       if (onUpdate) {
         onUpdate({ ...projectToUpdate, visibility });
       }
-      
+
       console.log('✅ Visibilidad actualizada a:', visibility);
+
+      setLoading(false);
       onClose();
+
     } catch (err) {
-      console.error("Error al actualizar visibilidad:", err);
+      console.error("Error:", err);
       setError(err.message || "Error al actualizar visibilidad");
-    } finally {
       setLoading(false);
     }
   };

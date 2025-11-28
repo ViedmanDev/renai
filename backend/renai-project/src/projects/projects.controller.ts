@@ -48,6 +48,8 @@ export class ProjectsController {
       description?: string;
       coverImage?: string;
       fromTemplate?: boolean;
+      visibility?: string;
+      folderId?: string;
     },
   ) {
     const userId = this.getUserIdFromToken(auth);
@@ -57,6 +59,8 @@ export class ProjectsController {
       body.description,
       body.coverImage,
       body.fromTemplate,
+      body.visibility,
+      body.folderId,
     );
   }
 

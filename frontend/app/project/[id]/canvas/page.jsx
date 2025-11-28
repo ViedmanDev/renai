@@ -39,17 +39,21 @@ import TaskManager from "@/components/TaskManager";
 import ProjectPrivacySettings from "@/components/ProjectPrivacySettings";
 import ProjectCollaborators from "@/components/ProjectCollaborators";
 import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
   const {
     currentProject,
+    setCurrentProject,
     selectedDetails,
     reorderDetails,
     updateProject,
     deleteProject,
   } = useProjects();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [openConfigModal, setOpenConfigModal] = useState(false);
   const [configuredDetails, setConfiguredDetails] = useState([]);
@@ -66,6 +70,60 @@ export default function ProjectCanvasPage() {
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
   const [openCollaborators, setOpenCollaborators] = useState(false);
+
+  // Cargar proyecto desde backend
+  useEffect(() => {
+    const loadProject = async () => {
+      const token = localStorage.getItem("token");
+      if (!token || !params.id) {
+        console.warn('⚠️ No hay token o ID de proyecto');
+        return;
+      }
+
+      try {
+        console.log('📦 Intentando cargar proyecto:', params.id);
+        const res = await fetch(`${API_URL}/projects/${params.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const project = await res.json();
+          console.log('Proyecto cargado desde backend:', project);
+          setCurrentProject(project);
+        } else {
+          console.error('❌ Error cargando proyecto, status:', res.status);
+          // NO redirigir, permitir que funcione con datos locales
+        }
+      } catch (error) {
+        console.error('❌ Error de red:', error);
+        //NO redirigir, permitir que funcione offline
+      }
+    };
+
+    // Solo cargar si currentProject está null o es diferente
+    if (!currentProject || (currentProject._id !== params.id && currentProject.id !== params.id)) {
+      loadProject();
+    }
+  }, [params.id, API_URL]);
+
+  //Debug logs
+  useEffect(() => {
+    console.log('🔄 currentProject cambió:', currentProject);
+    console.log('👁️ Visibilidad actual:', currentProject?.visibility);
+  }, [currentProject]);
+
+  useEffect(() => {
+    console.log('👤 Usuario:', user);
+  }, [user]);
+
+  useEffect(() => {
+    if (currentProject) {
+      setProjectName(currentProject.name);
+      setProjectDescription(currentProject.description || "");
+    }
+  }, [currentProject]);
 
   useEffect(() => {
     if (currentProject) {
@@ -238,7 +296,8 @@ export default function ProjectCanvasPage() {
 
   const handleSaveProjectName = () => {
     if (projectName.trim() && currentProject) {
-      updateProject(currentProject.id, { name: projectName.trim() });
+      const projectId = currentProject._id || currentProject.id;
+      updateProject(projectId, { name: projectName.trim() });
       setIsEditingProjectName(false);
     }
   };
@@ -250,26 +309,54 @@ export default function ProjectCanvasPage() {
 
   const handleSaveProjectDescription = () => {
     if (currentProject) {
-      updateProject(currentProject.id, {
+      const projectId = currentProject._id || currentProject.id;
+      updateProject(projectId, {
         description: projectDescription.trim(),
       });
       setIsEditingDescription(false);
     }
-  };
+  }
 
   const handleCancelEditProjectDescription = () => {
     setProjectDescription(currentProject?.description || "");
     setIsEditingDescription(false);
   };
 
-  const handleDeleteProject = () => {
-    if (
-      confirm(
-        "¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer."
-      )
-    ) {
-      deleteProject(currentProject.id);
-      router.push("/");
+  const handleDeleteProject = async () => {
+    if (!confirm("¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido para eliminar:', projectId);
+      alert('Error: No se pudo identificar el proyecto');
+      return;
+    }
+
+    console.log('🗑️ Eliminando proyecto:', projectId);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        console.log('✅ Proyecto eliminado correctamente');
+        deleteProject(projectId); // Actualizar contexto
+        router.push("/");
+      } else {
+        const data = await res.json();
+        alert('Error al eliminar: ' + (data.message || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando proyecto:', error);
+      alert('Error de conexión al eliminar el proyecto');
     }
   };
 
@@ -367,7 +454,7 @@ export default function ProjectCanvasPage() {
           {/* NUEVO: Badge de privacidad */}
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <ProjectPrivacyBadge
-              key={currentProject?.visibility}
+              key={`badge-${currentProject?.visibility}-${currentProject?._id}`}
               visibility={currentProject?.visibility || 'private'}
               size="small"
             />
@@ -396,15 +483,18 @@ export default function ProjectCanvasPage() {
           >
             Exportar como
           </Button>
-          <Avatar
-            sx={{
-              bgcolor: "#5e35b1",
-              width: { xs: 32, sm: 40 },
-              height: { xs: 32, sm: 40 },
-            }}
-          >
-            J
-          </Avatar>
+          <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#5e35b1",
+                width: { xs: 32, sm: 40 },
+                height: { xs: 32, sm: 40 },
+              }}
+              src={user?.picture}
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </Avatar>
+          </IconButton>
         </Box>
       </Box>
 
@@ -887,13 +977,23 @@ export default function ProjectCanvasPage() {
         </DialogActions>
       </Dialog>
 
-      {/* NUEVO: Modales de privacidad y colaboradores */}
+      {/* Modales de privacidad y colaboradores */}
       <ProjectPrivacySettings
         open={openPrivacySettings}
-        onClose={() => setOpenPrivacySettings(false)}
+        onClose={() => {
+          setOpenPrivacySettings(false);
+        }}
         project={currentProject}
         onUpdate={(updatedProject) => {
-          console.log("Proyecto actualizado:", updatedProject);
+          console.log("🔄 Visibilidad cambiada a:", updatedProject.visibility);
+
+          const projectId = currentProject._id || currentProject.id;
+
+          setCurrentProject({
+            ...currentProject,
+            visibility: updatedProject.visibility
+          });
+          updateProject(projectId, { visibility: updatedProject.visibility });
         }}
       />
 

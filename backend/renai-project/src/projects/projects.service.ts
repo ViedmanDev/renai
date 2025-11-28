@@ -23,6 +23,8 @@ export class ProjectsService {
     description?: string,
     coverImage?: string,
     fromTemplate: boolean = false,
+    visibility?: string,
+    folderId?: string, 
   ) {
     const project = new this.projectModel({
       name: name.trim(),
@@ -30,10 +32,13 @@ export class ProjectsService {
       coverImage,
       ownerId: new Types.ObjectId(ownerId),
       fromTemplate,
+      visibility: visibility || 'private',
+      folderId: folderId ? new Types.ObjectId(folderId) : null,
     });
 
     await project.save();
     console.log('✅ Proyecto creado:', project.name, 'por usuario:', ownerId);
+    console.log('📁 En carpeta:', folderId || 'Sin carpeta');
     return project;
   }
 

@@ -1,37 +1,34 @@
 "use client";
-import { Chip } from "@mui/material";
-import LockIcon from "@mui/icons-material/Lock";
-import PublicIcon from "@mui/icons-material/Public";
-import GroupIcon from "@mui/icons-material/Group";
 
-export default function ProjectPrivacyBadge({ visibility, size = "small" }) {
+import { Chip } from "@mui/material";
+
+export default function ProjectPrivacyBadge({ visibility = 'private', size = 'medium' }) {
   const config = {
     private: {
-      icon: <LockIcon fontSize={size} />,
-      label: "Privado",
-      color: "error",
+      label: '🔒 Privado',
+      color: '#f44336',
     },
     team: {
-      icon: <GroupIcon fontSize={size} />,
-      label: "Equipo",
-      color: "warning",
+      label: '👥 Equipo',
+      color: '#ff9800',
     },
     public: {
-      icon: <PublicIcon fontSize={size} />,
-      label: "Público",
-      color: "success",
+      label: '🌐 Público',
+      color: '#4caf50',
     },
   };
 
-  const { icon, label, color } = config[visibility] || config.private;
+  const current = config[visibility] || config.private;
 
   return (
     <Chip
-      icon={icon}
-      label={label}
-      color={color}
+      label={current.label}  // ✅ Solo label con emoji
       size={size}
-      variant="outlined"
+      sx={{
+        bgcolor: current.color,
+        color: 'white',
+        fontWeight: 'bold',
+      }}
     />
   );
 }

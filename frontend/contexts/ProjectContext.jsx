@@ -48,6 +48,7 @@ export function ProjectProvider({ children }) {
       name: projectData.name,
       description: projectData.description || "",
       coverImage: projectData.coverImage || null,
+      visibility: 'private',
       createdAt: new Date().toISOString(),
       details: [],
     }
@@ -56,8 +57,27 @@ export function ProjectProvider({ children }) {
   }
 
   const updateProject = (projectId, updates) => {
-    setProjects(projects.map((p) => (p.id === projectId ? { ...p, ...updates } : p)))
-  }
+    console.log('🔄 Actualizando proyecto:', projectId, updates);
+
+    // Actualizar en la lista de proyectos
+    setProjects(prevProjects =>
+      prevProjects.map((p) =>
+        (p.id === projectId || p._id === projectId)
+          ? { ...p, ...updates }
+          : p
+      )
+    );
+
+    //Actualizar currentProject si es el mismo
+    setCurrentProject(prevCurrent => {
+      if (prevCurrent && (prevCurrent.id === projectId || prevCurrent._id === projectId)) {
+        const updated = { ...prevCurrent, ...updates };
+        console.log(' currentProject actualizado:', updated);
+        return updated;
+      }
+      return prevCurrent;
+    });
+  };
 
   const addDetailToProject = (projectId, detail) => {
     setProjects(projects.map((p) => (p.id === projectId ? { ...p, details: [...(p.details || []), detail] } : p)))
@@ -92,13 +112,32 @@ export function ProjectProvider({ children }) {
   }
 
   const deleteProject = (projectId) => {
-    setProjects(projects.filter((p) => p.id !== projectId))
-    if (currentProject?.id === projectId) {
-      setCurrentProject(null)
-      setSelectedDetails([])
-      setConfiguredDetails([])
-    }
-  }
+    console.log('🗑️ Eliminando del contexto:', projectId);
+
+    setProjects(prevProjects =>
+      prevProjects.filter((p) => {
+        const pId = p._id || p.id;
+        const shouldKeep = pId !== projectId;
+        if (!shouldKeep) {
+          console.log('❌ Removiendo proyecto:', p.name);
+        }
+        return shouldKeep;
+      })
+    );
+
+    setCurrentProject(prevCurrent => {
+      if (!prevCurrent) return null;
+
+      const currentId = prevCurrent._id || prevCurrent.id;
+      if (currentId === projectId) {
+        console.log('🔄 Limpiando currentProject');
+        setSelectedDetails([]);
+        setConfiguredDetails([]);
+        return null;
+      }
+      return prevCurrent;
+    });
+  };
 
   return (
     <ProjectContext.Provider

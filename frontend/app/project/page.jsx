@@ -87,10 +87,15 @@ export default function HomePage() {
       setFilteredProjects(realProjects.length > 0 ? realProjects : projects);
     } else {
       // Filtrar por carpeta
-      loadProjectsByFolder(selectedFolderId);
+      const projectsInFolder = realProjects.filter(
+        (project) => project.folderId === selectedFolderId
+      );
+      console.log('📁 Proyectos en carpeta', selectedFolderId, ':', projectsInFolder);
+      setFilteredProjects(projectsInFolder);
     }
   }, [selectedFolderId, realProjects, projects]);
 
+  /*
   const loadProjectsByFolder = async (folderId) => {
     setLoadingProjects(true);
     try {
@@ -103,22 +108,60 @@ export default function HomePage() {
       setLoadingProjects(false);
     }
   };
-
-  const handleCreateProject = (projectData) => {
-    const newProject = createProject(projectData);
-    setCurrentProject(newProject);
+  */
+  const handleCreateProject = async (projectData) => {
+    //const newProject = createProject(projectData);
+    //setCurrentProject(newProject);
     setOpenModal(false);
-    router.push(`/project/${newProject.id}/details`);
+    //router.push(`/project/${newProject.id}/details`);
+    setTimeout(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`${API_URL}/projects`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("✅ Proyectos recargados:", data.length);
+          setRealProjects(data);
+        }
+      } catch (error) {
+        console.error("Error recargando proyectos:", error);
+      }
+    }, 500);
   };
 
   const handleViewProject = (project) => {
+    console.log('👁️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id}`);
+    router.push(`/project/${projectId}`);
   };
 
   const handleEditProject = (project) => {
+    console.log('✏️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id}/details`);
+    router.push(`/project/${projectId}/details`);
   };
 
   const handleDragEnd = async (result) => {
@@ -360,6 +403,7 @@ export default function HomePage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onCreateProject={handleCreateProject}
+        selectedFolderId={selectedFolderId}
       />
 
       <SetPasswordModal

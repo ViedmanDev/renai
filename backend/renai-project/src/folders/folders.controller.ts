@@ -58,6 +58,21 @@ export class FoldersController {
     return this.foldersService.getFolderTree(userId);
   }
 
+  @Get(':id/projects')
+  async getProjectsByFolder(
+    @Param('id') folderId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+
+    if (folderId === 'root') {
+      // Proyectos sin carpeta
+      return this.foldersService.getProjectsByFolder(userId, null);
+    }
+
+    return this.foldersService.getProjectsByFolder(userId, folderId);
+  }
+
   @Get(':id')
   async findOne(
     @Param('id') id: string,
