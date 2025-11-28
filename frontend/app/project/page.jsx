@@ -33,6 +33,7 @@ import ProjectCard from "@/components/ProjectCard";
 import SetPasswordModal from "@/components/SetPasswordModal";
 import FoldersSidebar from "@/components/FoldersSidebar";
 import TagManager from "@/components/TagManager";
+import AdminDrawer from "@/components/AdminDrawer";
 
 export default function HomePage() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function HomePage() {
   const [openTagManager, setOpenTagManager] = useState(false);
   const [openApps, setOpenApps] = useState(false);
   const [appsView, setAppsView] = useState("menu");
+  const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
 
   // Estados para notificaciones
   const [notification, setNotification] = useState({
@@ -304,11 +306,8 @@ export default function HomePage() {
               <ChevronLeftIcon />
             </IconButton>
             <IconButton
-              onClick={() => {
-                setAppsView("menu");
-                setOpenApps(true);
-              }}
-              title="Centro de herramientas"
+              onClick={() => setOpenAdminDrawer(true)}
+              title="Panel administrativo"
             >
               <AppsIcon />
             </IconButton>
@@ -495,72 +494,11 @@ export default function HomePage() {
         }}
       />
 
-      <Dialog
-        open={openApps}
-        onClose={() => {
-          setOpenApps(false);
-          setAppsView("menu"); // al cerrar, volvemos al menú por si acaso
-        }}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {appsView === "menu" && "Centro de herramientas"}
-          {appsView === "tags" && "Gestionar etiquetas"}
-        </DialogTitle>
-
-        <DialogContent dividers>
-          {/* Vista 1: menú de opciones */}
-          {appsView === "menu" && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => setAppsView("tags")}
-              >
-                Gestionar etiquetas
-              </Button>
-
-              {/* Aquí puedes agregar más opciones */}
-              {/* <Button ...>Otra herramienta</Button> */}
-            </Box>
-          )}
-
-          {/* Vista 2: gestor de etiquetas */}
-          {appsView === "tags" && (
-            <TagManager
-            // props que necesites, por ejemplo:
-            // projectId={currentProject?.id}
-            />
-          )}
-        </DialogContent>
-
-        <DialogActions>
-          {appsView === "tags" ? (
-            <>
-              {/* Volver solo al menu*/}
-              <Button onClick={() => setAppsView("menu")}>Volver</Button>
-              <Button
-                onClick={() => {
-                  setOpenApps(false);
-                  setAppsView("menu");
-                }}
-              >
-                Cerrar
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={() => {
-                setOpenApps(false);
-                setAppsView("menu");
-              }}
-            >
-              Cerrar
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+      {/* Panel Administrativo en dashboard*/}
+      <AdminDrawer
+        open={openAdminDrawer}
+        onClose={() => setOpenAdminDrawer(false)}
+      />
 
       {/* Notificaciones */}
       <Snackbar
