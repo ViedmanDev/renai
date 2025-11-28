@@ -18,6 +18,8 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
+import TaskIcon from "@mui/icons-material/Task";
+import SellIcon from "@mui/icons-material/Sell";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import FlagIcon from "@mui/icons-material/Flag";
@@ -40,6 +42,10 @@ import ProjectPrivacySettings from "@/components/ProjectPrivacySettings";
 import ProjectCollaborators from "@/components/ProjectCollaborators";
 import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import TagManager from "@/components/TagManager";
+import HomeIcon from "@mui/icons-material/Home";
+import CloseIcon from "@mui/icons-material/Close";
+import SearchIcon from "@mui/icons-material/Search";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -65,6 +71,7 @@ export default function ProjectCanvasPage() {
   );
   const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
   const [openTaskManager, setOpenTaskManager] = useState(false);
+  const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
   
   // Estados para privacidad y colaboradores
@@ -587,7 +594,14 @@ export default function ProjectCanvasPage() {
                   onClick={() => setOpenTaskManager(true)}
                   title="Gestionar tareas"
                 >
-                  <AddIcon fontSize="small" />
+                  <TaskIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => setOpenTagManager(true)}
+                  title="Gestionar etiquetas"
+                >
+                  <SellIcon fontSize="small" />
                 </IconButton>
               </Box>
 
@@ -671,7 +685,7 @@ export default function ProjectCanvasPage() {
                 >
                   Agregar detalles
                 </Button>
-                <Button
+                {/* <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
                   onClick={() => {
@@ -687,7 +701,7 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Editar detalles
-                </Button>
+                </Button> */}
               </Box>
 
               {/* Details Display */}
@@ -968,7 +982,7 @@ export default function ProjectCanvasPage() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Tareas del Proyecto</DialogTitle>
+        {/* <DialogTitle>Tareas del Proyecto</DialogTitle> */}
         <DialogContent>
           <TaskManager projectId={currentProject?.id} />
         </DialogContent>

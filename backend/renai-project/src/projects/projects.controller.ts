@@ -130,6 +130,51 @@ export class ProjectsController {
   }
 
   /**
+   * Actualizar campos personalizados (EAV)
+   */
+  @Patch(':id/custom-fields')
+  async updateCustomFields(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { customFields: Array<{ field: string; value: any }> },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireEdit(id, userId);
+
+    return this.projectsService.updateCustomFields(id, body.customFields || []);
+  }
+
+  /**
+   * Validar campos personalizados (sin guardar)
+   */
+  @Post(':id/custom-fields/validate')
+  async validateCustomFields(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { customFields: Array<{ field: string; value: any }> },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireAccess(id, userId);
+    const normalized = await this.projectsService.validateCustomFields(
+      body.customFields || [],
+    );
+    return { ok: true, normalized };
+  }
+
+  /**
+   * Obtener definiciones de campos + valores del proyecto
+   */
+  @Get(':id/custom-fields')
+  async getFieldsWithValues(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireAccess(id, userId);
+    return this.projectsService.getFieldsWithValues(id);
+  }
+
+  /**
    * Eliminar proyecto
    */
   @Delete(':id')

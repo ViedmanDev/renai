@@ -1,52 +1,160 @@
 /**
- * API ROUTE: /api/tags
- * Maneja operaciones CRUD de etiquetas
+ * API ROUTE: /api/tags/[id]
+ * Maneja operaciones de actualización y eliminación de etiquetas específicas
+ *
+ * Colección MongoDB: banderas
+ * Endpoints:
+ * - PUT /api/tags/[id] - Actualizar etiqueta
+ * - DELETE /api/tags/[id] - Eliminar etiqueta
  */
 
-import { NextResponse } from "next/server"
-import connectDB from "@/lib/mongodb"
-import Tag from "@/models/Tag"
+import { NextResponse } from "next/server";
+import { getDB } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 
-// GET - Obtener todas las etiquetas
-export async function GET(request) {
+/**
+ * PUT /api/tags/[id]
+ * Actualiza una etiqueta existente
+ */
+export async function PUT(request, { params }) {
   try {
-    await connectDB()
+    const db = await getDB();
+    const { id } = params;
+    const body = await request.json();
+    const { name, color } = body;
 
-    // TODO: Obtener userId del token de autenticación
-    const userId = "507f1f77bcf86cd799439011" // Ejemplo temporal
+    // Validar ObjectId
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "ID de etiqueta inválido" },
+        { status: 400 }
+      );
+    }
 
-    const tags = await Tag.find({
-      $or: [{ userId }, { isGlobal: true }],
-    }).lean()
+    // Validaciones
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        { error: "El nombre de la etiqueta es requerido" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(tags)
+    if (!color) {
+      return NextResponse.json(
+        { error: "El color de la etiqueta es requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si existe otra etiqueta con el mismo nombre (excluyendo la actual)
+    const existingTag = await db.collection("banderas").findOne({
+      name: name.trim(),
+      _id: { $ne: new ObjectId(id) },
+    });
+
+    if (existingTag) {
+      return NextResponse.json(
+        { error: "Ya existe otra etiqueta con ese nombre" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar etiqueta
+    const result = await db.collection("banderas").findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name: name.trim(),
+          color: color,
+          updated_at: new Date(),
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!result.value) {
+      return NextResponse.json(
+        { error: "Etiqueta no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Normalizar respuesta
+    const updatedTag = {
+      id: result.value._id.toString(),
+      _id: result.value._id.toString(),
+      name: result.value.name,
+      color: result.value.color,
+      created_at: result.value.created_at,
+      updated_at: result.value.updated_at,
+    };
+
+    return NextResponse.json(updatedTag);
   } catch (error) {
-    console.error("[v0] Error fetching tags:", error)
-    return NextResponse.json({ error: "Error al obtener etiquetas" }, { status: 500 })
+    console.error("[ERROR] Error updating tag:", error);
+    return NextResponse.json(
+      { error: "Error al actualizar etiqueta" },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Crear nueva etiqueta
-export async function POST(request) {
+/**
+ * DELETE /api/tags/[id]
+ * Elimina una etiqueta
+ */
+export async function DELETE(request, { params }) {
   try {
-    await connectDB()
+    const db = await getDB();
+    const { id } = params;
 
-    const body = await request.json()
-    const { name, color, category } = body
+    // Validar ObjectId
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "ID de etiqueta inválido" },
+        { status: 400 }
+      );
+    }
 
-    // TODO: Obtener userId del token de autenticación
-    const userId = "507f1f77bcf86cd799439011" // Ejemplo temporal
+    // Opcional: Verificar si la etiqueta está siendo usada
+    // Descomenta si quieres evitar eliminar etiquetas en uso
+    /*
+    const projectsUsingTag = await db.collection('projects').countDocuments({
+      'details.tags': id
+    });
+    
+    if (projectsUsingTag > 0) {
+      return NextResponse.json(
+        { 
+          error: `No se puede eliminar. La etiqueta está siendo usada en ${projectsUsingTag} proyecto(s)` 
+        },
+        { status: 400 }
+      );
+    }
+    */
 
-    const tag = await Tag.create({
-      name,
-      color,
-      category,
-      userId,
-    })
+    // Eliminar etiqueta
+    const result = await db.collection("banderas").deleteOne({
+      _id: new ObjectId(id),
+    });
 
-    return NextResponse.json(tag, { status: 201 })
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "Etiqueta no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Etiqueta eliminada correctamente",
+      deletedId: id,
+    });
   } catch (error) {
-    console.error("[v0] Error creating tag:", error)
-    return NextResponse.json({ error: "Error al crear etiqueta" }, { status: 500 })
+    console.error("[ERROR] Error deleting tag:", error);
+    return NextResponse.json(
+      { error: "Error al eliminar etiqueta" },
+      { status: 500 }
+    );
   }
 }
