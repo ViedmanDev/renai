@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * COMPONENTE: ParameterManager
@@ -22,7 +22,7 @@
  * - select: Lista de opciones
  */
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Box,
   TextField,
@@ -41,11 +41,11 @@ import {
   FormControl,
   InputLabel,
   Chip,
-} from "@mui/material"
-import AddIcon from "@mui/icons-material/Add"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteIcon from "@mui/icons-material/Delete"
-import "./ParameterManager.css"
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import "./ParameterManager.css";
 
 const PARAMETER_TYPES = [
   { value: "text", label: "Texto" },
@@ -53,7 +53,7 @@ const PARAMETER_TYPES = [
   { value: "boolean", label: "Sí/No" },
   { value: "date", label: "Fecha" },
   { value: "select", label: "Lista de opciones" },
-]
+];
 
 export default function ParameterManager() {
   const [parameters, setParameters] = useState([
@@ -71,33 +71,33 @@ export default function ParameterManager() {
       defaultValue: "true",
       description: "Si el proyecto requiere aprobación",
     },
-  ])
-  const [openDialog, setOpenDialog] = useState(false)
-  const [editingParameter, setEditingParameter] = useState(null)
-  const [paramName, setParamName] = useState("")
-  const [paramType, setParamType] = useState("text")
-  const [paramDefaultValue, setParamDefaultValue] = useState("")
-  const [paramDescription, setParamDescription] = useState("")
+  ]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingParameter, setEditingParameter] = useState(null);
+  const [paramName, setParamName] = useState("");
+  const [paramType, setParamType] = useState("text");
+  const [paramDefaultValue, setParamDefaultValue] = useState("");
+  const [paramDescription, setParamDescription] = useState("");
 
   const handleOpenDialog = (parameter = null) => {
     if (parameter) {
-      setEditingParameter(parameter)
-      setParamName(parameter.name)
-      setParamType(parameter.type)
-      setParamDefaultValue(parameter.defaultValue)
-      setParamDescription(parameter.description)
+      setEditingParameter(parameter);
+      setParamName(parameter.name);
+      setParamType(parameter.type);
+      setParamDefaultValue(parameter.defaultValue);
+      setParamDescription(parameter.description);
     } else {
-      setEditingParameter(null)
-      setParamName("")
-      setParamType("text")
-      setParamDefaultValue("")
-      setParamDescription("")
+      setEditingParameter(null);
+      setParamName("");
+      setParamType("text");
+      setParamDefaultValue("");
+      setParamDescription("");
     }
-    setOpenDialog(true)
-  }
+    setOpenDialog(true);
+  };
 
   const handleSaveParameter = () => {
-    if (!paramName.trim()) return
+    if (!paramName.trim()) return;
 
     if (editingParameter) {
       setParameters(
@@ -110,9 +110,9 @@ export default function ParameterManager() {
                 defaultValue: paramDefaultValue,
                 description: paramDescription,
               }
-            : p,
-        ),
-      )
+            : p
+        )
+      );
     } else {
       const newParameter = {
         id: Date.now().toString(),
@@ -120,22 +120,22 @@ export default function ParameterManager() {
         type: paramType,
         defaultValue: paramDefaultValue,
         description: paramDescription,
-      }
-      setParameters([...parameters, newParameter])
+      };
+      setParameters([...parameters, newParameter]);
     }
 
-    setOpenDialog(false)
-  }
+    setOpenDialog(false);
+  };
 
   const handleDeleteParameter = (parameterId) => {
     if (confirm("¿Estás seguro de eliminar este parámetro?")) {
-      setParameters(parameters.filter((p) => p.id !== parameterId))
+      setParameters(parameters.filter((p) => p.id !== parameterId));
     }
-  }
+  };
 
   const getTypeLabel = (type) => {
-    return PARAMETER_TYPES.find((t) => t.value === type)?.label || type
-  }
+    return PARAMETER_TYPES.find((t) => t.value === type)?.label || type;
+  };
 
   return (
     <Box className="parameter-manager">
@@ -158,10 +158,19 @@ export default function ParameterManager() {
             className="parameter-manager__list-item"
             secondaryAction={
               <Box className="parameter-manager__actions">
-                <IconButton edge="end" onClick={() => handleOpenDialog(param)} size="small">
+                <IconButton
+                  edge="end"
+                  onClick={() => handleOpenDialog(param)}
+                  size="small"
+                >
                   <EditIcon fontSize="small" />
                 </IconButton>
-                <IconButton edge="end" onClick={() => handleDeleteParameter(param.id)} size="small" color="error">
+                <IconButton
+                  edge="end"
+                  onClick={() => handleDeleteParameter(param.id)}
+                  size="small"
+                  color="error"
+                >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Box>
@@ -171,13 +180,30 @@ export default function ParameterManager() {
               primary={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   {param.name}
-                  <Chip label={getTypeLabel(param.type)} size="small" color="primary" variant="outlined" />
+                  <Chip
+                    label={getTypeLabel(param.type)}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
                 </Box>
               }
               secondary={
                 <>
-                  {param.description && <Typography variant="body2">{param.description}</Typography>}
-                  <Typography variant="caption" color="text.secondary">
+                  {param.description && (
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      display="block"
+                    >
+                      {param.description}
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    component="span"
+                  >
                     Valor por defecto: {param.defaultValue || "Sin valor"}
                   </Typography>
                 </>
@@ -187,8 +213,15 @@ export default function ParameterManager() {
         ))}
       </List>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingParameter ? "Editar Parámetro" : "Nuevo Parámetro"}</DialogTitle>
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingParameter ? "Editar Parámetro" : "Nuevo Parámetro"}
+        </DialogTitle>
         <DialogContent>
           <Box className="parameter-manager__dialog-content">
             <TextField
@@ -201,7 +234,11 @@ export default function ParameterManager() {
 
             <FormControl fullWidth>
               <InputLabel>Tipo de parámetro</InputLabel>
-              <Select value={paramType} onChange={(e) => setParamType(e.target.value)} label="Tipo de parámetro">
+              <Select
+                value={paramType}
+                onChange={(e) => setParamType(e.target.value)}
+                label="Tipo de parámetro"
+              >
                 {PARAMETER_TYPES.map((type) => (
                   <MenuItem key={type.value} value={type.value}>
                     {type.label}
@@ -229,11 +266,15 @@ export default function ParameterManager() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button onClick={handleSaveParameter} variant="contained" disabled={!paramName.trim()}>
+          <Button
+            onClick={handleSaveParameter}
+            variant="contained"
+            disabled={!paramName.trim()}
+          >
             {editingParameter ? "Actualizar" : "Crear"}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  )
+  );
 }
