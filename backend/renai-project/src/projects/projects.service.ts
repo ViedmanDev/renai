@@ -7,12 +7,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from '../schemas/project.schema';
 import * as crypto from 'crypto';
+import { FieldsService } from '../fields/fields.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
-  ) {}
+    private fieldsService: FieldsService,
+  ) { }
 
   /**
    * Crear un nuevo proyecto
@@ -118,6 +120,75 @@ export class ProjectsService {
   }
 
   /**
+   * Actualizar valores de campos personalizados con validación dinámica
+   */
+  async updateCustomFields(
+    projectId: string,
+    values: Array<{ field: string | Types.ObjectId; value: any }>,
+  ) {
+    // Valida contra definiciones activas de campos
+    const normalized = await this.fieldsService.validateValues(values);
+
+    const project = await this.projectModel
+      .findByIdAndUpdate(
+        projectId,
+        { $set: { customFields: normalized } },
+        { new: true },
+      )
+      .populate('customFields.field')
+      .exec();
+
+    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    return project;
+  }
+
+  async validateCustomFields(
+    values: Array<{ field: string | Types.ObjectId; value: any }>,
+  ) {
+    // Reutiliza la validación y devuelve normalizados si ok
+    return this.fieldsService.validateValues(values);
+  }
+
+  async getFieldsWithValues(projectId: string) {
+    const project = await this.projectModel
+      .findById(projectId)
+      .populate('customFields.field')
+      .exec();
+
+    if (!project) throw new NotFoundException('Proyecto no encontrado');
+
+    // 1. Obtener definiciones activas
+    const defs = await this.fieldsService.list();
+
+    // 2. Crear mapa de valores existentes
+    const valueMap = new Map<string, any>();
+    for (const cv of project.customFields || []) {
+      valueMap.set(cv.field.toString(), cv.value);
+    }
+
+    // 3. Combinar definiciones con valores
+    const result = defs.map((def) => ({
+      _id: def._id,
+      name: def.name,
+      key: def.key,
+      type: def.type,
+      required: def.required,
+      order: def.order,
+      options: def.options,
+      defaultValue: def.defaultValue,
+      validations: def.validations,
+      description: def.description,
+
+      // Valor actual del proyecto si existe, sino el defaultValue
+      value: valueMap.has(def._id.toString())
+        ? valueMap.get(def._id.toString())
+        : def.defaultValue ?? null,
+    }));
+
+    return result;
+  }
+
+  /**
    * Eliminar proyecto
    */
   async delete(projectId: string, userId: string) {
@@ -157,7 +228,7 @@ export class ProjectsService {
 
     while (!isUnique && attempts < 5) {
       // Generar slug aleatorio de 8 caracteres
-        slug = crypto.randomBytes(4).toString('hex');
+      slug = crypto.randomBytes(4).toString('hex');
 
       // Verificar si ya existe
       const existing = await this.projectModel.findOne({ publicSlug: slug });

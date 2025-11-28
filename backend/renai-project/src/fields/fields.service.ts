@@ -215,4 +215,31 @@ export class FieldsService {
     // Retornar normalizado: asegurar Types.ObjectId
     return values.map((v) => ({ field: new Types.ObjectId(v.field), value: v.value }));
   }
+
+  // ============ LIMPIEZA EAV ============
+  // Remover entradas huérfanas en customFields que apuntan a IDs de Field no existentes
+  async removeOrphanCustomFields() {
+    // Obtener todos los IDs de Field existentes (incluyendo inactivos, referencias aún válidas)
+    const fields = await this.fieldModel.find({}, { _id: 1 }).lean().exec();
+    const validIds = new Set(fields.map((f) => f._id.toString()));
+
+    // Obtener proyectos que tengan campos personalizados
+    const projects = await this.projectModel.find({ 'customFields.0': { $exists: true } }, { _id: 1, customFields: 1 }).lean().exec();
+
+    const ops: any[] = [];
+    for (const p of projects) {
+      const filtered = (p.customFields || []).filter((cf: any) => validIds.has(cf.field.toString()));
+      if (filtered.length !== (p.customFields || []).length) {
+        ops.push({
+          updateOne: {
+            filter: { _id: p._id },
+            update: { $set: { customFields: filtered } },
+          },
+        });
+      }
+    }
+
+    if (ops.length) await this.projectModel.bulkWrite(ops);
+    return { success: true, cleanedProjects: ops.length };
+  }
 }
