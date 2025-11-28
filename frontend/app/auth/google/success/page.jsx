@@ -44,7 +44,7 @@ export default function GoogleSuccessPage() {
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            // ACTUALIZA EL CONTEXTO AQUÍ 🔥
+        
             setUser(data.user);
 
             router.push("/");

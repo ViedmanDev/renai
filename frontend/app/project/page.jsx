@@ -66,22 +66,6 @@ export default function HomePage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-    if (loading) {
-    return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '100vh' 
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-
   // Cargar proyectos del backend
   const fetchProjects = async () => {
     try {
@@ -293,6 +277,21 @@ export default function HomePage() {
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa", display: "flex" }}>
