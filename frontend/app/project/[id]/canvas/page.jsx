@@ -564,7 +564,7 @@ export default function ProjectCanvasPage() {
                 >
                   Agregar detalles
                 </Button>
-                {/* <Button
+                <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
                   onClick={() => {
@@ -580,7 +580,7 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Editar detalles
-                </Button> */}
+                </Button>
               </Box>
 
               {/* Details Display */}
