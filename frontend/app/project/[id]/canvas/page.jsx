@@ -28,7 +28,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HomeIcon from "@mui/icons-material/Home";
-import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import LockIcon from "@mui/icons-material/Lock";
 import GroupIcon from "@mui/icons-material/Group";
@@ -43,9 +42,7 @@ import ProjectCollaborators from "@/components/ProjectCollaborators";
 import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import TagManager from "@/components/TagManager";
-import HomeIcon from "@mui/icons-material/Home";
 import CloseIcon from "@mui/icons-material/Close";
-import SearchIcon from "@mui/icons-material/Search";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
