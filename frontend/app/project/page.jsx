@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
   Container,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   TextField,
   InputAdornment,
@@ -28,6 +32,8 @@ import CreateProjectModal from "@/components/CreateProjectModal";
 import ProjectCard from "@/components/ProjectCard";
 import SetPasswordModal from "@/components/SetPasswordModal";
 import FoldersSidebar from "@/components/FoldersSidebar";
+import TagManager from "@/components/TagManager";
+import AdminDrawer from "@/components/AdminDrawer";
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,6 +48,12 @@ export default function HomePage() {
   const [realProjects, setRealProjects] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [filteredProjects, setFilteredProjects] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [openAppModal, setOpenAppModal] = useState(false);
+  const [openTagManager, setOpenTagManager] = useState(false);
+  const [openApps, setOpenApps] = useState(false);
+  const [appsView, setAppsView] = useState("menu");
+  const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
 
   // Estados para notificaciones
   const [notification, setNotification] = useState({
@@ -99,7 +111,7 @@ export default function HomePage() {
       // Filtrar por carpeta
       loadProjectsByFolder(selectedFolderId);
     }
-  }, [selectedFolderId, realProjects, projects]);
+  }, [selectedFolderId, realProjects]);
 
   const loadProjectsByFolder = async (folderId) => {
     setLoadingProjects(true);
@@ -182,6 +194,19 @@ export default function HomePage() {
     }
   };
 
+  const visibleProjects = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) return filteredProjects;
+
+    return filteredProjects.filter((project) => {
+      const name = (project.name || "").toLowerCase();
+      const description = (project.description || "").toLowerCase();
+
+      return name.includes(term) || description.includes(term);
+    });
+  }, [filteredProjects, searchTerm]);
+
   const handleViewProject = (project) => {
     setCurrentProject(project);
     router.push(`/project/${project.id || project._id}`);
@@ -221,8 +246,25 @@ export default function HomePage() {
         });
       }
     } else {
-      // Reordenar dentro de la misma carpeta
-      reorderProjects(source.index, destination.index);
+      // ✅ Reordenar dentro de la misma carpeta Y actualizar el estado
+      const reordered = Array.from(filteredProjects);
+      const [moved] = reordered.splice(source.index, 1);
+      reordered.splice(destination.index, 0, moved);
+
+      // Actualizar lo que se ve
+      setFilteredProjects(reordered);
+
+      // Actualizar la fuente base si estás en "Todos los proyectos"
+      if (selectedFolderId === null && realProjects.length > 0) {
+        setRealProjects(reordered);
+      }
+
+      // Si tu contexto necesita saber el nuevo orden,
+      // mejor pásale el listado completo en vez de solo índices
+      if (typeof reorderProjects === "function") {
+        // Puedes adaptar esto según cómo implementaste el contexto
+        reorderProjects(reordered.map((p) => p.id || p._id));
+      }
     }
   };
 
@@ -263,16 +305,21 @@ export default function HomePage() {
             <IconButton>
               <ChevronLeftIcon />
             </IconButton>
-            <IconButton>
+            <IconButton
+              onClick={() => setOpenAdminDrawer(true)}
+              title="Panel administrativo"
+            >
               <AppsIcon />
             </IconButton>
             <TextField
               size="small"
               placeholder="Buscar proyectos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <MenuIcon />
+                    {/* <MenuIcon /> */}
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -339,8 +386,8 @@ export default function HomePage() {
                 : "📁 Carpeta seleccionada"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {filteredProjects.length} proyecto
-              {filteredProjects.length !== 1 ? "s" : ""}
+              {visibleProjects.length} proyecto
+              {visibleProjects.length !== 1 ? "s" : ""}
             </Typography>
           </Box>
 
@@ -375,10 +422,10 @@ export default function HomePage() {
                       <ProjectCard isNew onView={() => setOpenModal(true)} />
                     </Grid>
 
-                    {filteredProjects.map((project, index) => (
+                    {visibleProjects.map((project, index) => (
                       <Draggable
                         key={project.id || project._id}
-                        draggableId={project.id || project._id}
+                        draggableId={String(project.id || project._id)}
                         index={index}
                       >
                         {(provided, snapshot) => (
@@ -391,11 +438,9 @@ export default function HomePage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
+                            style={provided.draggableProps.style}
                             sx={{
                               opacity: snapshot.isDragging ? 0.8 : 1,
-                              transform: snapshot.isDragging
-                                ? "rotate(2deg)"
-                                : "none",
                               transition: "transform 0.2s ease",
                             }}
                           >
@@ -447,6 +492,12 @@ export default function HomePage() {
         onSuccess={() => {
           console.log("Contraseña establecida exitosamente");
         }}
+      />
+
+      {/* Panel Administrativo en dashboard*/}
+      <AdminDrawer
+        open={openAdminDrawer}
+        onClose={() => setOpenAdminDrawer(false)}
       />
 
       {/* Notificaciones */}

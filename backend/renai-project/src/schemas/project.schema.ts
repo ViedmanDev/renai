@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Schema as MongooseSchema } from 'mongoose';
 
 export type ProjectDocument = Project & Document;
 
@@ -61,6 +61,18 @@ export class Project {
   @Prop({ type: Array, default: [] })
   selectedDetails: any[];
 
+  // Campos personalizados en formato EAV
+  @Prop({
+    type: [
+      {
+        field: { type: Types.ObjectId, ref: 'Field', required: true },
+        value: { type: MongooseSchema.Types.Mixed },
+      },
+    ],
+    default: [],
+  })
+  customFields: { field: Types.ObjectId; value: any }[];
+
   @Prop({ default: false })
   fromTemplate: boolean;
 
@@ -83,3 +95,4 @@ ProjectSchema.index({ ownerId: 1 });
 ProjectSchema.index({ 'permissions.userId': 1 });
 ProjectSchema.index({ publicSlug: 1 });
 ProjectSchema.index({ createdAt: -1 });
+ProjectSchema.index({ 'customFields.field': 1 });

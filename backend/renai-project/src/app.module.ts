@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { MailerService } from './mailer/mailer.service';
 import { FoldersModule } from './folders/folders.module';
 import { TagsModule } from './tags/tags.module';
+import { FieldsModule } from './fields/fields.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TagsModule } from './tags/tags.module';
     ProjectsModule,
     FoldersModule,
     TagsModule,
+    FieldsModule,
   ],
   providers: [MailerService],
 })
