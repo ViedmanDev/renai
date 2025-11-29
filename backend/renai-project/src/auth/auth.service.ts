@@ -21,38 +21,58 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    try {
-      const user = await this.userModel.findOne({ email }).select('+password');
-      if (!user) throw new UnauthorizedException('Usuario no encontrado');
-      if (!user.password)
-        throw new UnauthorizedException(
-          'Este usuario no tiene contraseña asignada',
-        );
+    console.log('🔐 Intentando login:', email);
 
-      const valid = await bcrypt.compare(password, user.password);
-      if (!valid) throw new UnauthorizedException('Contraseña incorrecta');
+    const user = await this.userModel.findOne({
+      email: email.toLowerCase().trim()
+    }).select('+password');
 
-      const userId = (user._id as Types.ObjectId).toString();
-      const token = jwt.sign(
-        { id: userId, email: user.email },
-        process.env.JWT_SECRET || 'SECRET_KEY',
-        { expiresIn: '1d' },
-      );
-
-      return {
-        message: 'Login exitoso',
-        token,
-        user: {
-          id: userId,
-          name: user.name,
-          email: user.email,
-          picture: user.picture,
-        },
-      };
-    } catch (error) {
-      console.error('Error en login:', error);
-      throw new InternalServerErrorException('Error interno en el servidor');
+    if (!user) {
+      console.log('❌ Usuario no encontrado');
+      throw new UnauthorizedException('Usuario no encontrado');
     }
+
+    console.log('✅ Usuario encontrado:', user.email);
+    console.log('📝 Tiene password:', !!user.password);
+
+    if (!user.password) {
+      console.log(' Usuario sin contraseña (login con Google)');
+      throw new UnauthorizedException(
+        'Este usuario no tiene contraseña. Inicia sesión con Google o establece una contraseña.'
+      );
+    }
+
+    console.log('🔍 Comparando contraseñas...');
+    console.log('🔍 Password ingresado (length):', password.length);
+    console.log('🔍 Hash en DB:', user.password.substring(0, 20) + '...');
+
+    const valid = await bcrypt.compare(password, user.password);
+    console.log('🔍 Resultado comparación:', valid);
+
+    if (!valid) {
+      console.log('❌ Contraseña incorrecta');
+      throw new UnauthorizedException('Contraseña incorrecta');
+    }
+
+    console.log('✅ Login exitoso');
+
+    const userId = (user._id as Types.ObjectId).toString();
+    const token = jwt.sign(
+      { id: userId, email: user.email },
+      process.env.JWT_SECRET || 'SECRET_KEY',
+      { expiresIn: '1d' },
+    );
+
+    return {
+      message: 'Login exitoso',
+      token,
+      user: {
+        id: userId,
+        name: user.name,
+        email: user.email,
+        picture: user.picture,
+      },
+    };
   }
 
   async register(name: string, email: string, password: string) {
