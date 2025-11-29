@@ -15,7 +15,7 @@ import { ProjectVisibility, ProjectRole } from '../schemas/project.schema';
 import * as jwt from 'jsonwebtoken';
 
 @Controller('projects')
-export class ProjectsController {
+export class ProjectsController   {
   constructor(
     private projectsService: ProjectsService,
     private permissionsService: ProjectsPermissionsService,
@@ -71,6 +71,21 @@ export class ProjectsController {
   async findAll(@Headers('authorization') auth: string) {
     const userId = this.getUserIdFromToken(auth);
     return this.projectsService.findUserProjects(userId);
+  }
+
+  /**
+  * Actualizar orden de proyectos
+  */
+  @Patch('reorder')
+  async reorderProjects(
+    @Headers('authorization') auth: string,
+    @Body() body: { projectIds: string[] },
+  ) {
+    console.log('📬 PATCH /projects/reorder');
+    console.log('📝 Nuevo orden:', body.projectIds);
+
+    const userId = this.getUserIdFromToken(auth);
+    return this.projectsService.reorderProjects(userId, body.projectIds);
   }
 
   /**

@@ -217,53 +217,83 @@ export default function HomePage() {
   };
 
   const handleDragEnd = async (result) => {
-    if (!result.destination) return;
+    // Si no hay destino, no hacer nada
+    if (!result.destination) {
+      return;
+    }
 
-    const { source, destination, draggableId } = result;
+    // Si la posición no cambió, no hacer nada
+    if (result.source.index === result.destination.index) {
+      return;
+    }
 
-    // Si se mueve a una carpeta diferente
-    if (destination.droppableId !== source.droppableId) {
-      const projectId = draggableId;
-      const newFolderId =
-        destination.droppableId === "root" ? null : destination.droppableId;
+    console.log('🎯 Drag End:', {
+      from: result.source.index,
+      to: result.destination.index,
+    });
 
-      try {
-        await moveProjectToFolder(projectId, newFolderId);
+    // Crear copia del array para no mutar el estado directamente
+    const items = Array.from(visibleProjects);
 
-        // Recargar proyectos
-        if (selectedFolderId === null) {
-          await fetchProjects();
-        } else {
-          loadProjectsByFolder(selectedFolderId);
-        }
-      } catch (error) {
-        console.error("Error moviendo proyecto:", error);
+    // Remover el item de la posición original
+    const [reorderedItem] = items.splice(result.source.index, 1);
+
+    // Insertar el item en la nueva posición
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Actualizar estado local INMEDIATAMENTE (UI responsiva)
+    setFilteredProjects(items);
+
+    // Guardar orden en la base de datos
+    try {
+      const projectIds = items.map(p => p._id || p.id);
+
+      console.log('💾 Guardando nuevo orden:', projectIds);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/projects/reorder`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ projectIds })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('✅ Orden guardado en BD:', data);
+
+        // Opcional: Mostrar notificación de éxito
         setNotification({
           open: true,
-          message: "Error al mover el proyecto: " + error.message,
-          severity: "error",
+          message: 'Orden actualizado correctamente',
+          severity: 'success'
+        });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('❌ Error al guardar orden:', res.status, errorData);
+
+        // Revertir el cambio si falla
+        fetchProjects();
+
+        setNotification({
+          open: true,
+          message: `Error al guardar orden: ${errorData.message || res.statusText}`,
+          severity: 'error'
         });
       }
-    } else {
-      // ✅ Reordenar dentro de la misma carpeta Y actualizar el estado
-      const reordered = Array.from(filteredProjects);
-      const [moved] = reordered.splice(source.index, 1);
-      reordered.splice(destination.index, 0, moved);
+    } catch (error) {
+      console.error('❌ Error de conexión:', error);
 
-      // Actualizar lo que se ve
-      setFilteredProjects(reordered);
+      // Revertir el cambio si falla
+      fetchProjects();
 
-      // Actualizar la fuente base si estás en "Todos los proyectos"
-      if (selectedFolderId === null && realProjects.length > 0) {
-        setRealProjects(reordered);
-      }
-
-      // Si tu contexto necesita saber el nuevo orden,
-      // mejor pásale el listado completo en vez de solo índices
-      if (typeof reorderProjects === "function") {
-        // Puedes adaptar esto según cómo implementaste el contexto
-        reorderProjects(reordered.map((p) => p.id || p._id));
-      }
+      setNotification({
+        open: true,
+        message: 'Error de conexión al guardar orden',
+        severity: 'error'
+      });
     }
   };
 
