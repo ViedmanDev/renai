@@ -47,6 +47,7 @@ export interface ProjectDocument extends Document {
   viewsCount: number;
   lastAccessedAt?: Date;
   folderId: Types.ObjectId | null;
+  order?: number;
 
   //Métodos helper
   hasPermission(userId: string, requiredRole?: ProjectRole): boolean;
@@ -111,6 +112,9 @@ export class Project {
 
   @Prop({ type: Types.ObjectId, ref: 'Folder', default: null })
   folderId: Types.ObjectId | null;
+
+  @Prop({ type: Number, default: 0 })
+  order?: number;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
@@ -122,8 +126,10 @@ ProjectSchema.index({ 'groupPermissions.groupId': 1 });
 ProjectSchema.index({ publicSlug: 1 });
 ProjectSchema.index({ createdAt: -1 });
 ProjectSchema.index({ 'customFields.field': 1 });
+ProjectSchema.index({ ownerId: 1, order: 1 });
+ProjectSchema.index({ folderId: 1, order: 1 });
 
-// ✅ Métodos helper para permisos
+// Métodos helper para permisos
 ProjectSchema.methods.hasPermission = function (
   userId: string,
   requiredRole: ProjectRole = ProjectRole.VIEWER,

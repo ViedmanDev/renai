@@ -28,6 +28,12 @@ export class ProjectsService {
     visibility?: string,
     folderId?: string,
   ) {
+    const maxOrderProject = await this.projectModel
+      .findOne({ ownerId: new Types.ObjectId(ownerId) })
+      .sort({ order: -1 })
+      .exec();
+
+    const nextOrder = maxOrderProject ? (maxOrderProject.order || 0) + 1 : 0;
     const project = new this.projectModel({
       name: name.trim(),
       description: description?.trim(),
@@ -36,11 +42,13 @@ export class ProjectsService {
       fromTemplate,
       visibility: visibility || 'private',
       folderId: folderId ? new Types.ObjectId(folderId) : null,
+      order: nextOrder,
     });
 
     await project.save();
     console.log('✅ Proyecto creado:', project.name, 'por usuario:', ownerId);
     console.log('📁 En carpeta:', folderId || 'Sin carpeta');
+    console.log('📊 Orden asignado:', nextOrder);
     return project;
   }
 
@@ -55,7 +63,7 @@ export class ProjectsService {
           { 'permissions.userId': new Types.ObjectId(userId) },
         ],
       })
-      .sort({ updatedAt: -1 })
+      .sort({ order: 1, createdAt: -1 })
       .populate('ownerId', 'name email picture')
       .exec();
   }
@@ -423,5 +431,50 @@ export class ProjectsService {
     await project.save();
 
     return project;
+  }
+
+  async reorderProjects(userId: string, projectIds: string[]) {
+    console.log('🔄 Reordenando proyectos para usuario:', userId);
+    console.log('📝 Orden recibido:', projectIds);
+
+    // Actualizar TODOS los proyectos del usuario (propios + compartidos)
+    // El orden se guarda por usuario, no por proyecto
+    const updatePromises = projectIds.map(async (projectId, index) => {
+      const project = await this.projectModel.findById(projectId);
+
+      if (!project) {
+        console.log(`Proyecto no encontrado: ${projectId}`);
+        return null;
+      }
+
+      // Verificar que el usuario tenga acceso (owner o colaborador)
+      const hasAccess =
+        project.ownerId.toString() === userId ||
+        project.permissions.some(p => p.userId.toString() === userId);
+
+      if (!hasAccess) {
+        console.log(`Usuario sin acceso al proyecto: ${projectId}`);
+        return null;
+      }
+
+      // Actualizar orden
+      project.order = index;
+      await project.save();
+
+      console.log(`Proyecto ${project.name} → orden ${index}`);
+      return project;
+    });
+
+    const results = await Promise.all(updatePromises);
+    const updatedCount = results.filter(r => r !== null).length;
+
+    console.log(`${updatedCount} proyectos reordenados de ${projectIds.length}`);
+
+    return {
+      success: true,
+      message: `${updatedCount} proyectos reordenados`,
+      updatedCount,
+      total: projectIds.length
+    };
   }
 }
