@@ -35,8 +35,11 @@ import SetPasswordModal from "@/components/SetPasswordModal";
 import FoldersSidebar from "@/components/FoldersSidebar";
 import TagManager from "@/components/TagManager";
 import AdminDrawer from "@/components/AdminDrawer";
+import GroupManager from "@/components/GroupManager";
+import GroupIcon from "@mui/icons-material/Group";
 
 export default function HomePage() {
+  const [openGroupManager, setOpenGroupManager] = useState(false);
   const router = useRouter();
   const { projects, createProject, setCurrentProject, reorderProjects } =
     useProjects();
@@ -371,6 +374,15 @@ export default function HomePage() {
               {user?.name || "Usuario"}
             </Button>
 
+            {/* Mis Grupos */}
+            <IconButton
+              onClick={() => setOpenGroupManager(true)}
+              title="Mis grupos"
+              sx={{ color: 'black' }}
+            >
+              <GroupIcon />
+            </IconButton>
+
             {/* Avatar con foto de Google o inicial */}
             <IconButton 
               onClick={() => router.push("/profile")}
@@ -532,6 +544,10 @@ export default function HomePage() {
           {notification.message}
         </Alert>
       </Snackbar>
+      <GroupManager
+        open={openGroupManager}
+        onClose={() => setOpenGroupManager(false)}
+      />
     </Box>
   );
 }

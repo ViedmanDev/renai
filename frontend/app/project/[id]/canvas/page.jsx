@@ -31,7 +31,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import HomeIcon from "@mui/icons-material/Home";
 import SearchIcon from "@mui/icons-material/Search";
 import LockIcon from "@mui/icons-material/Lock";
-import GroupIcon from "@mui/icons-material/Group";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useProjects } from "@/contexts/ProjectContext";
 import DetailFieldsSidebar from "@/components/DetailFieldsSidebar";
@@ -44,6 +43,11 @@ import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import TagManager from "@/components/TagManager";
 import CloseIcon from "@mui/icons-material/Close";
+import GroupIcon from "@mui/icons-material/Group";
+import SecurityIcon from "@mui/icons-material/Security";
+import GroupManager from "@/components/GroupManager";
+import ProjectGroupPermissions from "@/components/ProjectGroupPermissions";
+import PermissionsMatrix from "@/components/PermissionsMatrix";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -72,6 +76,10 @@ export default function ProjectCanvasPage() {
   const [openTaskManager, setOpenTaskManager] = useState(false);
   const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
+
+  const [openGroupManager, setOpenGroupManager] = useState(false);
+  const [openProjectGroups, setOpenProjectGroups] = useState(false);
+  const [openPermissionsMatrix, setOpenPermissionsMatrix] = useState(false);
   
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
@@ -463,6 +471,30 @@ export default function ProjectCanvasPage() {
           </IconButton>
 
           <Box sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: "auto" } }} />
+
+          <IconButton
+            onClick={() => setOpenProjectGroups(true)}
+            title="Grupos del proyecto"
+            size="small"
+            sx={{
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <GroupIcon fontSize="small" />
+          </IconButton>
+
+          <IconButton
+            onClick={() => setOpenPermissionsMatrix(true)}
+            title="Matriz de permisos"
+            size="small"
+            sx={{
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <SecurityIcon fontSize="small" />
+          </IconButton>
           
           {/* NUEVO: Badge de privacidad */}
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
@@ -1023,6 +1055,36 @@ export default function ProjectCanvasPage() {
         onClose={() => setOpenCollaborators(false)}
         project={currentProject}
       />
+      {/* Modal: Gestor de Grupos */}
+      <GroupManager
+        open={openGroupManager}
+        onClose={() => setOpenGroupManager(false)}
+      />
+
+      {/* Modal: Grupos del Proyecto */}
+      <ProjectGroupPermissions
+        open={openProjectGroups}
+        onClose={() => setOpenProjectGroups(false)}
+        project={currentProject}
+      />
+
+      {/* Modal: Matriz de Permisos */}
+      <Dialog
+        open={openPermissionsMatrix}
+        onClose={() => setOpenPermissionsMatrix(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent>
+          <PermissionsMatrix />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPermissionsMatrix(false)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
+  
 }
