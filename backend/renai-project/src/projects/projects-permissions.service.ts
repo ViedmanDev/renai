@@ -12,11 +12,13 @@ import {
   ProjectRole,
   ProjectVisibility,
 } from '../schemas/project.schema';
+import { User } from '../schemas/user.schema';
 
 @Injectable()
 export class ProjectsPermissionsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
 
   async canAccess(projectId: string, userId: string): Promise<boolean> {
@@ -140,13 +142,16 @@ export class ProjectsPermissionsService {
   ) {
     await this.requireOwner(projectId, ownerId);
 
-    const targetUser = await this.findUserByEmail(email);
+    const targetUser = await this.userModel.findOne({
+      email: email.toLowerCase().trim()
+    });
+
     if (!targetUser) {
       throw new BadRequestException('Usuario no encontrado con ese email');
     }
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -160,21 +165,66 @@ export class ProjectsPermissionsService {
     );
 
     if (existingIndex >= 0) {
+      // Actualizar rol existente
       project.permissions[existingIndex].role = role;
-      console.log(`✅ Rol actualizado: ${email} → ${role}`);
+      console.log( `Rol actualizado: ${email} → ${role}`);
     } else {
+      // Agregar nuevo permiso
       project.permissions.push({
         userId: targetUser._id,
-        email: email,
+        email: email.toLowerCase().trim(),
         role,
         grantedAt: new Date(),
         grantedBy: new Types.ObjectId(ownerId),
       });
-      console.log(`✅ Permiso otorgado: ${email} → ${role}`);
+      console.log( `Permiso otorgado: ${email} → ${role}`);
     }
 
-    await project.save();
-    return project;
+    // Marcar como modificado explícitamente
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
+    console.log(`💾 Proyecto guardado. Total permisos: ${savedProject.permissions.length}`);
+
+    return savedProject;
+  }
+
+  // NUEVO MÉTODO: Actualizar rol sin revocar
+  async updatePermissionRole(
+    projectId: string,
+    ownerId: string,
+    targetUserId: string,
+    newRole: ProjectRole,
+  ) {
+    await this.requireOwner(projectId, ownerId);
+
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const permissionIndex = project.permissions.findIndex(
+      (p) => p.userId.toString() === targetUserId,
+    );
+
+    if (permissionIndex === -1) {
+      throw new BadRequestException(
+        'El usuario no tiene permisos en este proyecto',
+      );
+    }
+
+    // Actualizar solo el rol
+    project.permissions[permissionIndex].role = newRole;
+
+    // Marcar como modificado
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
+    console.log(`✏️ Rol actualizado para ${targetUserId}: ${newRole}`);
+    console.log(`💾 Total permisos: ${savedProject.permissions.length}`);
+
+    return savedProject;
   }
 
   async revokePermission(
@@ -185,7 +235,7 @@ export class ProjectsPermissionsService {
     await this.requireOwner(projectId, ownerId);
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -202,9 +252,14 @@ export class ProjectsPermissionsService {
       );
     }
 
-    await project.save();
+    // Marcar como modificado
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
     console.log(`🚫 Permiso revocado para usuario: ${targetUserId}`);
-    return project;
+    console.log(`💾 Total permisos restantes: ${savedProject.permissions.length}`);
+
+    return savedProject;
   }
 
   async changeVisibility(
@@ -215,7 +270,7 @@ export class ProjectsPermissionsService {
     await this.requireOwner(projectId, ownerId);
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -241,7 +296,10 @@ export class ProjectsPermissionsService {
 
     const populatedPermissions = await Promise.all(
       project.permissions.map(async (perm) => {
-        const user = await this.findUserById(perm.userId.toString());
+        const user = await this.userModel
+          .findById(perm.userId.toString())
+          .select('name email picture');
+
         return {
           userId: perm.userId,
           email: perm.email,
@@ -263,17 +321,5 @@ export class ProjectsPermissionsService {
       collaborators: populatedPermissions,
       visibility: project.visibility,
     };
-  }
-
-  private findUserByEmail(email: string) {
-    const mongoose = require('mongoose');
-    const User = mongoose.model('User');
-    return User.findOne({ email: email.toLowerCase().trim() });
-  }
-
-  private findUserById(userId: string) {
-    const mongoose = require('mongoose');
-    const User = mongoose.model('User');
-    return User.findById(userId).select('name email picture');
   }
 }

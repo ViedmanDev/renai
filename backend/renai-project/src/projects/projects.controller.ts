@@ -281,4 +281,77 @@ export class ProjectsController {
 
     return { role };
   }
+
+  // ========== ENDPOINTS DE COLABORADORES (ALIAS) ==========
+
+  /**
+   * Agregar colaborador (alias de grantPermission)
+   */
+  @Post(':id/collaborators')
+  async addCollaborator(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { email: string; role: ProjectRole },
+  ) {
+    console.log(`📬 POST /projects/${id}/collaborators`);
+    console.log(`📧 Email: ${body.email}, Rol: ${body.role}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.grantPermission(
+      id,
+      userId,
+      body.email,
+      body.role,
+    );
+  }
+
+  /**
+   * Listar colaboradores (alias de getProjectUsers)
+   */
+  @Get(':id/collaborators')
+  async getCollaborators(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/collaborators`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.getProjectUsers(id, userId);
+  }
+
+  /**
+   * Actualizar rol de colaborador
+   */
+  @Patch(':id/collaborators/:userId')
+  async updateCollaboratorRole(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { role: ProjectRole },
+  ) {
+    console.log(`📬 PATCH /projects/${id}/collaborators/${targetUserId}`);
+    console.log(`📝 Nuevo rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+
+    // Usar el nuevo método updatePermissionRole
+    return this.permissionsService.updatePermissionRole(
+      id,
+      userId,
+      targetUserId,
+      body.role,
+    );
+  }
+
+  /**
+   * Remover colaborador (alias de revokePermission)
+   */
+  @Delete(':id/collaborators/:userId')
+  async removeCollaborator(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 DELETE /projects/${id}/collaborators/${targetUserId}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.revokePermission(id, userId, targetUserId);
+  }
 }

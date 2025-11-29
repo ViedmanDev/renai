@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -75,23 +76,6 @@ export default function ProjectCanvasPage() {
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
   const [openCollaborators, setOpenCollaborators] = useState(false);
-
-
-  if (loading) {
-    return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '100vh' 
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   // Cargar proyecto desde backend
   useEffect(() => {
     const loadProject = async () => {
@@ -146,17 +130,25 @@ export default function ProjectCanvasPage() {
     }
   }, [currentProject]);
 
-  useEffect(() => {
-    if (currentProject) {
-      setProjectName(currentProject.name);
-      setProjectDescription(currentProject.description || "");
-    }
-  }, [currentProject]);
-
   const handleDetailClick = (detail) => {
     setSelectedDetail(detail);
     setOpenConfigModal(true);
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const handleSaveDetail = (configuredDetail) => {
     const exists = configuredDetails.find((d) => d.id === configuredDetail.id);

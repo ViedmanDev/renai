@@ -27,7 +27,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 
 export default function ProjectCollaborators({ open, onClose, project }) {
-  const [collaborators, setCollaborators] = useState([]);
+  // ✅ Estados principales
+  const [collaborators, setCollaborators] = useState([]); // ← FALTABA ESTE
   const [owner, setOwner] = useState(null);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -38,6 +39,7 @@ export default function ProjectCollaborators({ open, onClose, project }) {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+  // ✅ Cargar colaboradores cuando se abre el modal
   useEffect(() => {
     if (open && project) {
       loadCollaborators();
@@ -46,9 +48,22 @@ export default function ProjectCollaborators({ open, onClose, project }) {
 
   const loadCollaborators = async () => {
     setLoading(true);
+    setError("");
+    
+    const projectId = project._id || project.id;
+    
+    if (!projectId || projectId === 'undefined') {
+      setError('Error: ID de proyecto no válido');
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/projects/${project.id}/users`, {
+      
+      console.log(`📡 Cargando colaboradores de: /projects/${projectId}/collaborators`);
+      
+      const res = await fetch(`${API_URL}/projects/${projectId}/collaborators`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -56,11 +71,20 @@ export default function ProjectCollaborators({ open, onClose, project }) {
 
       if (res.ok) {
         const data = await res.json();
+        console.log('✅ Respuesta del servidor:', data);
+        
+        // ✅ El backend devuelve { owner, collaborators, visibility }
         setOwner(data.owner);
         setCollaborators(data.collaborators || []);
+        
+      } else {
+        const errorData = await res.json();
+        console.error('❌ Error:', errorData);
+        setError(errorData.message || 'Error al cargar colaboradores');
       }
     } catch (error) {
-      console.error("Error cargando colaboradores:", error);
+      console.error("❌ Error cargando colaboradores:", error);
+      setError('Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -72,12 +96,22 @@ export default function ProjectCollaborators({ open, onClose, project }) {
       return;
     }
 
+    const projectId = project._id || project.id;
+    
+    if (!projectId || projectId === 'undefined') {
+      setError('Error: ID de proyecto no válido');
+      return;
+    }
+
     setAdding(true);
     setError("");
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/projects/${project.id}/permissions`, {
+      
+      console.log(`📤 Agregando colaborador: ${newEmail} con rol ${newRole}`);
+      
+      const res = await fetch(`${API_URL}/projects/${projectId}/collaborators`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,15 +124,17 @@ export default function ProjectCollaborators({ open, onClose, project }) {
       });
 
       if (res.ok) {
+        console.log('✅ Colaborador agregado');
         setNewEmail("");
         setNewRole("viewer");
-        loadCollaborators();
+        loadCollaborators(); // Recargar lista
       } else {
         const data = await res.json();
+        console.error('❌ Error:', data);
         setError(data.message || "Error al agregar colaborador");
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error:", error);
       setError("Error de conexión");
     } finally {
       setAdding(false);
@@ -108,9 +144,14 @@ export default function ProjectCollaborators({ open, onClose, project }) {
   const handleRemoveCollaborator = async (userId) => {
     if (!confirm("¿Estás seguro de remover este colaborador?")) return;
 
+    const projectId = project._id || project.id;
+
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/projects/${project.id}/permissions/${userId}`, {
+      
+      console.log(`🗑️ Removiendo colaborador: ${userId}`);
+      
+      const res = await fetch(`${API_URL}/projects/${projectId}/collaborators/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -118,10 +159,45 @@ export default function ProjectCollaborators({ open, onClose, project }) {
       });
 
       if (res.ok) {
+        console.log('✅ Colaborador removido');
         loadCollaborators();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.message || 'Error al remover');
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error:", error);
+      setError('Error de conexión');
+    }
+  };
+
+  const handleChangeRole = async (userId, newRole) => {
+    const projectId = project._id || project.id;
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      console.log(`📝 Cambiando rol de ${userId} a ${newRole}`);
+      
+      const res = await fetch(`${API_URL}/projects/${projectId}/collaborators/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (res.ok) {
+        console.log('✅ Rol actualizado');
+        loadCollaborators();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.message || 'Error al actualizar rol');
+      }
+    } catch (error) {
+      console.error("❌ Error:", error);
+      setError('Error de conexión');
     }
   };
 
@@ -136,7 +212,7 @@ export default function ProjectCollaborators({ open, onClose, project }) {
       editor: 'Editor',
       viewer: 'Visualizador',
     };
-    return <Chip label={labels[role]} color={colors[role]} size="small" />;
+    return <Chip label={labels[role] || role} color={colors[role] || 'default'} size="small" />;
   };
 
   return (
@@ -155,7 +231,7 @@ export default function ProjectCollaborators({ open, onClose, project }) {
           </Typography>
           
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
               {error}
             </Alert>
           )}
@@ -211,78 +287,113 @@ export default function ProjectCollaborators({ open, onClose, project }) {
         ) : (
           <Box>
             <Typography variant="subtitle2" gutterBottom>
-              Acceso al proyecto
+              Acceso al proyecto ({collaborators.length} colaborador{collaborators.length !== 1 ? 'es' : ''})
             </Typography>
 
-            <List>
-              {owner && (
+            {/* Mostrar propietario primero */}
+            {owner && (
+              <List>
                 <ListItem
                   sx={{
-                    border: '1px solid #e0e0e0',
+                    border: '2px solid #ff9800',
                     borderRadius: 2,
-                    mb: 1,
+                    mb: 2,
+                    bgcolor: '#fff3e0',
                   }}
                 >
                   <ListItemAvatar>
                     <Avatar src={owner.picture} alt={owner.name}>
-                      {owner.name?.charAt(0)}
+                      {owner.name?.charAt(0)?.toUpperCase()}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={owner.name}
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {owner.name}
+                        {getRoleBadge('owner')}
+                      </Box>
+                    }
                     secondary={owner.email}
                   />
-                  {getRoleBadge('owner')}
                 </ListItem>
-              )}
+              </List>
+            )}
 
-              {collaborators.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No hay colaboradores invitados aún
-                  </Typography>
-                </Box>
-              ) : (
-                collaborators.map((collab) => (
-                  <ListItem
-                    key={collab.userId}
-                    sx={{
-                      border: '1px solid #e0e0e0',
-                      borderRadius: 2,
-                      mb: 1,
-                    }}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleRemoveCollaborator(collab.userId)}
-                        title="Remover acceso"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemAvatar>
-                      <Avatar src={collab.user?.picture} alt={collab.user?.name}>
-                        {collab.user?.name?.charAt(0) || collab.email.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={collab.user?.name || collab.email}
-                      secondary={
-                        <>
-                          {collab.user?.email || collab.email}
-                          <br />
-                          <Typography variant="caption" color="text.secondary">
-                            Agregado: {new Date(collab.grantedAt).toLocaleDateString()}
-                          </Typography>
-                        </>
+            {/* Lista de colaboradores */}
+            {collaborators.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  No hay colaboradores invitados aún
+                </Typography>
+              </Box>
+            ) : (
+              <List>
+                {collaborators.map((collab) => {
+                  const collabUserId = collab.userId?._id || collab.userId;
+                  
+                  return (
+                    <ListItem
+                      key={collabUserId || collab.email}
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2,
+                        mb: 1,
+                      }}
+                      secondaryAction={
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <Select
+                            size="small"
+                            value={collab.role || "viewer"}
+                            onChange={(e) => handleChangeRole(collabUserId, e.target.value)}
+                            sx={{ minWidth: 120 }}
+                          >
+                            <MenuItem value="editor">Editor</MenuItem>
+                            <MenuItem value="viewer">Visualizador</MenuItem>
+                          </Select>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleRemoveCollaborator(collabUserId)}
+                            title="Remover acceso"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
                       }
-                    />
-                    {getRoleBadge(collab.role)}
-                  </ListItem>
-                ))
-              )}
-            </List>
+                    >
+                      <ListItemAvatar>
+                        <Avatar 
+                          src={collab.user?.picture} 
+                          alt={collab.user?.name || collab.email}
+                        >
+                          {(collab.user?.name || collab.email)?.charAt(0)?.toUpperCase()}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {collab.user?.name || collab.email}
+                            {getRoleBadge(collab.role)}
+                          </Box>
+                        }
+                        secondary={
+                          <>
+                            {collab.user?.email || collab.email}
+                            {collab.grantedAt && (
+                              <>
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  Agregado: {new Date(collab.grantedAt).toLocaleDateString('es-ES')}
+                                </Typography>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  );
+                })}
+              </List>
+            )}
           </Box>
         )}
 
@@ -291,13 +402,13 @@ export default function ProjectCollaborators({ open, onClose, project }) {
             📋 Permisos por rol:
           </Typography>
           <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-            • <strong>Propietario:</strong> Control total
+            • <strong>Propietario:</strong> Control total del proyecto
           </Typography>
           <Typography variant="caption" display="block">
-            • <strong>Editor:</strong> Ver y editar
+            • <strong>Editor:</strong> Puede ver y editar el proyecto
           </Typography>
           <Typography variant="caption" display="block">
-            • <strong>Visualizador:</strong> Solo ver
+            • <strong>Visualizador:</strong> Solo puede ver el proyecto
           </Typography>
         </Box>
       </DialogContent>
