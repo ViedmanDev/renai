@@ -384,18 +384,6 @@ export default function HomePage() {
 
             <Box sx={{ flexGrow: 1 }} />
 
-            {/* Botón de establecer contraseña */}
-            {user && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setOpenPasswordModal(true)}
-                sx={{ mr: 2 }}
-              >
-                Establecer Contraseña
-              </Button>
-            )}
-
             {/* Nombre del usuario */}
             <Button
               variant="text"

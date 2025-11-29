@@ -15,12 +15,13 @@ class ResendDto {
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  /*
   @Post('register')
   async register(@Body() body: CreateUserDto) {
     const { name, email, password } = body;
     return this.usersService.createUser(name, email, password);
   }
-
+  */
   @Post('resend-verification')
   async resend(@Body() body: ResendDto) {
     return this.usersService.resendVerification(body.email);

@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -72,18 +73,28 @@ export class AuthService {
 
   async register(name: string, email: string, password: string) {
     try {
+      console.log('📝 auth.service.register called');
+      console.log('  name:', name);
+      console.log('  email:', email);
+      console.log('  password:', password ? `***${password.length} chars***` : 'UNDEFINED');
       const existing = await this.userModel.findOne({
         email: email.toLowerCase().trim(),
       });
       if (existing) throw new UnauthorizedException('El usuario ya existe');
 
+      console.log('🔐 Hasheando password...');
       const hashed = await bcrypt.hash(password, 10);
+      console.log('✅ Password hasheado correctamente');
+
       const newUser = new this.userModel({
         name: name.trim(),
         email: email.toLowerCase().trim(),
         password: hashed,
       });
+
+      console.log('💾 Guardando usuario...');
       const savedUser = await newUser.save();
+      console.log('✅ Usuario guardado:', savedUser.email);
       const userId = (savedUser._id as Types.ObjectId).toString();
 
       const token = jwt.sign(
@@ -91,6 +102,8 @@ export class AuthService {
         process.env.JWT_SECRET || 'SECRET_KEY',
         { expiresIn: '1d' },
       );
+
+      console.log('✅ Token generado');
 
       return {
         message: 'Usuario registrado correctamente',

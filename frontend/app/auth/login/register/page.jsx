@@ -172,7 +172,8 @@ export default function RegisterPage() {
     setLoading(true);
     setErrors({ name: "", email: "", password: "", confirmPassword: "", general: "" });
 
-    const result = await register(name.trim(), email.toLowerCase().trim(), password);
+    // ✅ Llamar a la función register del contexto
+    const result = await register(name, email, password);
 
     if (result.success) {
       alert("✅ Usuario registrado correctamente. Redirigiendo...");
@@ -181,7 +182,12 @@ export default function RegisterPage() {
       // Manejar errores específicos del backend
       const errorMessage = result.message || "Error al registrar usuario";
       
-      if (errorMessage.toLowerCase().includes("ya existe")) {
+      // ✅ Convertir a string si es necesario
+      const errorText = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : (errorMessage?.message || String(errorMessage));
+
+      if (errorText.toLowerCase().includes("ya existe")) {
         setErrors(prev => ({
           ...prev,
           email: "Este email ya está registrado"
@@ -189,7 +195,7 @@ export default function RegisterPage() {
       } else {
         setErrors(prev => ({
           ...prev,
-          general: errorMessage
+          general: errorText
         }));
       }
     }
