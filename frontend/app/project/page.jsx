@@ -18,6 +18,7 @@ import {
   Typography,
   Alert,
   Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -39,9 +40,10 @@ export default function HomePage() {
   const router = useRouter();
   const { projects, createProject, setCurrentProject, reorderProjects } =
     useProjects();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  console.log('🏠 HomePage - user recibido:', user);
+  const [userKey, setUserKey] = useState(0)
   const { moveProjectToFolder, getProjectsByFolder } = useFolders();
-
   const [openModal, setOpenModal] = useState(false);
   const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -83,7 +85,7 @@ export default function HomePage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ Proyectos cargados del backend:", data);
+        console.log("Proyectos cargados del backend:", data);
         setRealProjects(data);
       } else {
         console.log("⚠️ Error al cargar proyectos:", res.status);
@@ -98,6 +100,18 @@ export default function HomePage() {
     }
   };
 
+  
+  useEffect(() => {
+    console.log('👤 User cambió en HomePage:', user);
+    console.log('👤 User name:', user?.name);
+    console.log('👤 User _id:', user?._id);
+
+    // Forzar re-render
+    if (user) {
+      setUserKey(prev => prev + 1);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchProjects();
   }, [API_URL]);
@@ -109,10 +123,15 @@ export default function HomePage() {
       setFilteredProjects(realProjects.length > 0 ? realProjects : projects);
     } else {
       // Filtrar por carpeta
-      loadProjectsByFolder(selectedFolderId);
+      const projectsInFolder = realProjects.filter(
+        (project) => project.folderId === selectedFolderId
+      );
+      console.log('📁 Proyectos en carpeta', selectedFolderId, ':', projectsInFolder);
+      setFilteredProjects(projectsInFolder);
     }
   }, [selectedFolderId, realProjects]);
 
+  /*
   const loadProjectsByFolder = async (folderId) => {
     setLoadingProjects(true);
     try {
@@ -125,73 +144,30 @@ export default function HomePage() {
       setLoadingProjects(false);
     }
   };
-
-  // ✅ FUNCIÓN ACTUALIZADA - Ahora crea el proyecto en el backend
+  */
   const handleCreateProject = async (projectData) => {
-    try {
-      const token = localStorage.getItem("token");
+    //const newProject = createProject(projectData);
+    //setCurrentProject(newProject);
+    setOpenModal(false);
+    //router.push(`/project/${newProject.id}/details`);
+    setTimeout(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-      if (!token) {
-        setNotification({
-          open: true,
-          message: "No hay sesión activa. Por favor inicia sesión.",
-          severity: "error",
+        const res = await fetch(`${API_URL}/projects`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        return;
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("✅ Proyectos recargados:", data.length);
+          setRealProjects(data);
+        }
+      } catch (error) {
+        console.error("Error recargando proyectos:", error);
       }
-
-      console.log("📤 Enviando proyecto al backend:", projectData);
-
-      // Hacer petición POST al backend
-      const res = await fetch(`${API_URL}/projects`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: projectData.name,
-          description: projectData.description,
-          coverImage: projectData.coverImage,
-          fromTemplate: projectData.fromTemplate || false,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al crear proyecto");
-      }
-
-      const newProject = await res.json();
-      console.log("✅ Proyecto creado en MongoDB Atlas:", newProject);
-
-      // Mostrar notificación de éxito
-      setNotification({
-        open: true,
-        message: "Proyecto creado exitosamente",
-        severity: "success",
-      });
-
-      // Actualizar contexto local (opcional, para compatibilidad)
-      createProject(projectData);
-
-      // Recargar proyectos desde el backend
-      await fetchProjects();
-
-      // Cerrar modal
-      setOpenModal(false);
-
-      // Redirigir al proyecto creado
-      setCurrentProject(newProject);
-      router.push(`/project/${newProject._id}/details`);
-    } catch (error) {
-      console.error("❌ Error al crear proyecto:", error);
-      setNotification({
-        open: true,
-        message: error.message || "Error al crear el proyecto",
-        severity: "error",
-      });
-    }
+    }, 500);
   };
 
   const visibleProjects = useMemo(() => {
@@ -208,13 +184,33 @@ export default function HomePage() {
   }, [filteredProjects, searchTerm]);
 
   const handleViewProject = (project) => {
+    console.log('👁️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id || project._id}`);
+    router.push(`/project/${projectId}`);
   };
 
   const handleEditProject = (project) => {
+    console.log('✏️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id || project._id}/details`);
+    router.push(`/project/${projectId}/details`);
   };
 
   const handleDragEnd = async (result) => {
@@ -281,6 +277,21 @@ export default function HomePage() {
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa", display: "flex" }}>
@@ -361,9 +372,14 @@ export default function HomePage() {
             </Button>
 
             {/* Avatar con foto de Google o inicial */}
-            <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture}>
-              {!user?.picture && (user?.name?.charAt(0) || "U")}
-            </Avatar>
+            <IconButton 
+              onClick={() => router.push("/profile")}
+              sx={{ p: 0 }}
+            >
+              <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture} key={`avatar-${userKey}`}>
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </Avatar>
+            </IconButton>
 
             {/* Botón de Logout */}
             <IconButton
@@ -484,6 +500,7 @@ export default function HomePage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onCreateProject={handleCreateProject}
+        selectedFolderId={selectedFolderId}
       />
 
       <SetPasswordModal

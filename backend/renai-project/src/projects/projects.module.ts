@@ -5,10 +5,14 @@ import { ProjectsService } from './projects.service';
 import { ProjectsPermissionsService } from './projects-permissions.service';
 import { Project, ProjectSchema } from '../schemas/project.schema';
 import { FieldsModule } from '../fields/fields.module';
+import { User, UserSchema } from '../schemas/user.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Project.name, schema: ProjectSchema }]),
+    MongooseModule.forFeature([
+      { name: Project.name, schema: ProjectSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
     FieldsModule,
   ],
   controllers: [ProjectsController],

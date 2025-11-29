@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Project, ProjectDocument } from '../schemas/project.schema';
+import { Project, ProjectDocument, ProjectRole, ProjectPermission } from '../schemas/project.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 import * as crypto from 'crypto';
 import { FieldsService } from '../fields/fields.service';
 
@@ -13,6 +15,7 @@ import { FieldsService } from '../fields/fields.service';
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private fieldsService: FieldsService,
   ) {}
 
@@ -22,6 +25,8 @@ export class ProjectsService {
     description?: string,
     coverImage?: string,
     fromTemplate: boolean = false,
+    visibility?: string,
+    folderId?: string,
   ) {
     const project = new this.projectModel({
       name: name.trim(),
@@ -29,10 +34,13 @@ export class ProjectsService {
       coverImage,
       ownerId: new Types.ObjectId(ownerId),
       fromTemplate,
+      visibility: visibility || 'private',
+      folderId: folderId ? new Types.ObjectId(folderId) : null,
     });
 
     await project.save();
     console.log('✅ Proyecto creado:', project.name, 'por usuario:', ownerId);
+    console.log('📁 En carpeta:', folderId || 'Sin carpeta');
     return project;
   }
 
@@ -123,7 +131,6 @@ export class ProjectsService {
     projectId: string,
     values: Array<{ field: string | Types.ObjectId; value: any }>,
   ) {
-    // Valida contra definiciones activas de campos
     const normalized = await this.fieldsService.validateValues(values);
 
     const project = await this.projectModel
@@ -142,7 +149,6 @@ export class ProjectsService {
   async validateCustomFields(
     values: Array<{ field: string | Types.ObjectId; value: any }>,
   ) {
-    // Reutiliza la validación y devuelve normalizados si ok
     return this.fieldsService.validateValues(values);
   }
 
@@ -154,16 +160,13 @@ export class ProjectsService {
 
     if (!project) throw new NotFoundException('Proyecto no encontrado');
 
-    // 1. Obtener definiciones activas
     const defs = await this.fieldsService.list();
 
-    // 2. Crear mapa de valores existentes
     const valueMap = new Map<string, any>();
     for (const cv of project.customFields || []) {
       valueMap.set(cv.field.toString(), cv.value);
     }
 
-    // 3. Combinar definiciones con valores
     const result = defs.map((def) => ({
       _id: def._id,
       name: def.name,
@@ -175,8 +178,6 @@ export class ProjectsService {
       defaultValue: def.defaultValue,
       validations: def.validations,
       description: def.description,
-
-      // Valor actual del proyecto si existe, sino el defaultValue
       value: valueMap.has(def._id.toString())
         ? valueMap.get(def._id.toString())
         : (def.defaultValue ?? null),
@@ -195,7 +196,6 @@ export class ProjectsService {
       throw new NotFoundException('Proyecto no encontrado');
     }
 
-    // Verificar que el usuario es el propietario
     if (project.ownerId.toString() !== userId) {
       throw new BadRequestException(
         'Solo el propietario puede eliminar el proyecto',
@@ -213,21 +213,17 @@ export class ProjectsService {
   async generatePublicSlug(projectId: string): Promise<string> {
     const project = await this.findOne(projectId);
 
-    // Si ya tiene slug, devolverlo
     if (project.publicSlug) {
       return project.publicSlug;
     }
 
-    // Generar slug único
     let slug: string | null = null;
     let isUnique = false;
     let attempts = 0;
 
     while (!isUnique && attempts < 5) {
-      // Generar slug aleatorio de 8 caracteres
       slug = crypto.randomBytes(4).toString('hex');
 
-      // Verificar si ya existe
       const existing = await this.projectModel.findOne({ publicSlug: slug });
       if (!existing) {
         isUnique = true;
@@ -242,5 +238,190 @@ export class ProjectsService {
     }
 
     return slug;
+  }
+
+  /**
+   * Agregar colaborador a un proyecto
+   */
+  async addCollaborator(
+    projectId: string,
+    email: string,
+    role: ProjectRole,
+    grantedBy: string,
+  ): Promise<Project> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    if (project.ownerId.toString() !== grantedBy) {
+      throw new ForbiddenException('Solo el propietario puede agregar colaboradores');
+    }
+
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con email ${email} no encontrado`);
+    }
+
+    if (user._id.toString() === project.ownerId.toString()) {
+      throw new ForbiddenException('El propietario ya tiene todos los permisos');
+    }
+
+    const existingPermission = project.permissions.find(
+      (p) => p.userId.toString() === user._id.toString(),
+    );
+
+    if (existingPermission) {
+      existingPermission.role = role;
+      existingPermission.grantedAt = new Date();
+    } else {
+      const newPermission: ProjectPermission = {
+        userId: user._id,
+        email: user.email,
+        role,
+        grantedAt: new Date(),
+        grantedBy: new Types.ObjectId(grantedBy),
+      };
+
+      project.permissions.push(newPermission);
+    }
+
+    await project.save();
+    console.log(`Colaborador ${email} agregado con rol ${role}`);
+
+    return project;
+  }
+
+  /**
+   * Remover colaborador de un proyecto
+   */
+  async removeCollaborator(
+    projectId: string,
+    userIdToRemove: string,
+    requestingUserId: string,
+  ): Promise<Project> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    if (project.ownerId.toString() !== requestingUserId) {
+      throw new ForbiddenException('Solo el propietario puede remover colaboradores');
+    }
+
+    if (userIdToRemove === project.ownerId.toString()) {
+      throw new ForbiddenException('No puedes remover al propietario');
+    }
+
+    const initialLength = project.permissions.length;
+    project.permissions = project.permissions.filter(
+      (p) => p.userId.toString() !== userIdToRemove,
+    );
+
+    if (project.permissions.length === initialLength) {
+      throw new NotFoundException('El usuario no tiene permisos en este proyecto');
+    }
+
+    await project.save();
+    console.log(`Colaborador ${userIdToRemove} removido`);
+
+    return project;
+  }
+
+  /**
+   * Actualizar rol de colaborador
+   */
+  async updateCollaboratorRole(
+    projectId: string,
+    userId: string,
+    newRole: ProjectRole,
+    requestingUserId: string,
+  ): Promise<Project> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    if (project.ownerId.toString() !== requestingUserId) {
+      throw new ForbiddenException('Solo el propietario puede cambiar roles');
+    }
+
+    const permission = project.permissions.find(
+      (p) => p.userId.toString() === userId,
+    );
+
+    if (!permission) {
+      throw new NotFoundException('El usuario no tiene permisos en este proyecto');
+    }
+
+    permission.role = newRole;
+    permission.grantedAt = new Date();
+
+    await project.save();
+    console.log(`✅ Rol de ${userId} actualizado a ${newRole}`);
+
+    return project;
+  }
+
+  /**
+   * Obtener lista de colaboradores
+   */
+  async getCollaborators(projectId: string): Promise<any[]> {
+    const project = await this.projectModel
+      .findById(projectId)
+      .populate('ownerId', 'name email picture');
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const owner = {
+      userId: project.ownerId,
+      role: ProjectRole.OWNER,
+      grantedAt: project['createdAt'],
+      isOwner: true,
+    };
+
+    const collaborators = await Promise.all(
+      project.permissions.map(async (perm) => {
+        const user = await this.userModel.findById(perm.userId).select('name email picture');
+        return {
+          userId: perm.userId,
+          name: user?.name,
+          email: user?.email || perm.email,
+          picture: user?.picture,
+          role: perm.role,
+          grantedAt: perm.grantedAt,
+          isOwner: false,
+        };
+      }),
+    );
+
+    return [owner, ...collaborators];
+  }
+
+  /**
+   * Obtener proyecto público por slug
+   */
+  async getByPublicSlug(slug: string): Promise<Project> {
+    const project = await this.projectModel.findOne({ publicSlug: slug });
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    if (project.visibility !== 'public') {
+      throw new ForbiddenException('Este proyecto no es público');
+    }
+
+    project.viewsCount += 1;
+    project.lastAccessedAt = new Date();
+    await project.save();
+
+    return project;
   }
 }

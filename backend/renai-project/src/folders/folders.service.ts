@@ -109,6 +109,19 @@ export class FoldersService {
     return folder;
   }
 
+  async getProjectsByFolder(userId: string, folderId: string | null) {
+    const projects = await this.projectModel
+      .find({
+        ownerId: new Types.ObjectId(userId),
+        folderId: folderId ? new Types.ObjectId(folderId) : null,
+      })
+      .sort({ updatedAt: -1 })
+      .exec();
+
+    console.log(`📁 Proyectos en carpeta ${folderId || 'root'}:`, projects.length);
+    return projects;
+  }
+
   // Eliminar carpeta
   async delete(folderId: string, userId: string) {
     const folder = await this.folderModel.findOne({

@@ -2,10 +2,14 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function GoogleSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setUser } = useAuth();
+
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -35,7 +39,16 @@ export default function GoogleSuccessPage() {
 
           if (res.ok) {
             console.log("Usuario autenticado:", data.user);
+
+            // Guardar token y user
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+        
+            setUser(data.user);
+
             router.push("/");
+
           } else {
             console.error("Error en verificación:", data);
             alert("Error al verificar la sesión");
