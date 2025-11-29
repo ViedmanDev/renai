@@ -24,7 +24,14 @@ export interface ProjectPermission {
   grantedBy: Types.ObjectId;
 }
 
-// ✅ Document type con métodos
+export interface GroupPermission {
+  groupId: Types.ObjectId;
+  role: ProjectRole;
+  grantedAt: Date;
+  grantedBy: Types.ObjectId;
+}
+
+//  Document type con métodos
 export interface ProjectDocument extends Document {
   name: string;
   description?: string;
@@ -32,6 +39,7 @@ export interface ProjectDocument extends Document {
   ownerId: Types.ObjectId;
   visibility: ProjectVisibility;
   permissions: ProjectPermission[];
+  groupPermissions: GroupPermission[];
   publicSlug?: string;
   selectedDetails: any[];
   customFields: { field: Types.ObjectId; value: any }[];
@@ -39,8 +47,8 @@ export interface ProjectDocument extends Document {
   viewsCount: number;
   lastAccessedAt?: Date;
   folderId: Types.ObjectId | null;
-  
-  // Métodos helper
+
+  //Métodos helper
   hasPermission(userId: string, requiredRole?: ProjectRole): boolean;
   getUserRole(userId: string): ProjectRole | null;
   canView(userId: string): boolean;
@@ -71,6 +79,9 @@ export class Project {
 
   @Prop({ type: [Object], default: [] })
   permissions: ProjectPermission[];
+
+  @Prop({ type: [Object], default: [] })
+  groupPermissions: GroupPermission[];
 
   @Prop({ unique: true, sparse: true })
   publicSlug?: string;
@@ -107,6 +118,7 @@ export const ProjectSchema = SchemaFactory.createForClass(Project);
 // Índices
 ProjectSchema.index({ ownerId: 1 });
 ProjectSchema.index({ 'permissions.userId': 1 });
+ProjectSchema.index({ 'groupPermissions.groupId': 1 });
 ProjectSchema.index({ publicSlug: 1 });
 ProjectSchema.index({ createdAt: -1 });
 ProjectSchema.index({ 'customFields.field': 1 });
@@ -137,28 +149,74 @@ ProjectSchema.methods.hasPermission = function (
   return roleHierarchy[permission.role] >= roleHierarchy[requiredRole];
 };
 
-ProjectSchema.methods.getUserRole = function (userId: string): ProjectRole | null {
-  if (this.ownerId.toString() === userId) {
-    return ProjectRole.OWNER;
+//Método para verificar permisos por grupo
+ProjectSchema.methods.hasGroupPermission = function (
+  userId: string,
+  userGroups: any[],
+  requiredRole: ProjectRole = ProjectRole.VIEWER,
+): boolean {
+  if (!userGroups || userGroups.length === 0) {
+    return false;
   }
 
-  const permission = this.permissions.find(
-    (p: ProjectPermission) => p.userId.toString() === userId,
-  );
+  const roleHierarchy: Record<ProjectRole, number> = {
+    [ProjectRole.VIEWER]: 1,
+    [ProjectRole.EDITOR]: 2,
+    [ProjectRole.OWNER]: 3,
+  };
 
-  return permission ? permission.role : null;
+  // Buscar si el usuario pertenece a algún grupo con permisos
+  for (const groupPerm of this.groupPermissions) {
+    const userInGroup = userGroups.some(
+      (g) => g._id.toString() === groupPerm.groupId.toString(),
+    );
+
+    if (userInGroup) {
+      if (roleHierarchy[groupPerm.role] >= roleHierarchy[requiredRole]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 };
 
-ProjectSchema.methods.canView = function (userId: string): boolean {
+ProjectSchema.methods.canView = function (
+  userId: string,
+  userGroups?: any[],
+): boolean {
   if (this.visibility === ProjectVisibility.PUBLIC) {
     return true;
   }
 
-  return this.hasPermission(userId, ProjectRole.VIEWER);
-};
+  // Verificar permisos individuales
+  if (this.hasPermission(userId, ProjectRole.VIEWER)) {
+    return true;
+  }
 
-ProjectSchema.methods.canEdit = function (userId: string): boolean {
-  return this.hasPermission(userId, ProjectRole.EDITOR);
+  // Verificar permisos por grupo
+  if (userGroups) {
+    return this.hasGroupPermission(userId, userGroups, ProjectRole.VIEWER);
+  }
+
+  return false;
+}
+//canEdit considera grupos
+ProjectSchema.methods.canEdit = function (
+  userId: string,
+  userGroups?: any[],
+): boolean {
+  // Verificar permisos individuales
+  if (this.hasPermission(userId, ProjectRole.EDITOR)) {
+    return true;
+  }
+
+  // Verificar permisos por grupo
+  if (userGroups) {
+    return this.hasGroupPermission(userId, userGroups, ProjectRole.EDITOR);
+  }
+
+  return false;
 };
 
 ProjectSchema.methods.isOwner = function (userId: string): boolean {

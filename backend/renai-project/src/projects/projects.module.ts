@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
-import { ProjectsPermissionsService } from './projects-permissions.service';
 import { Project, ProjectSchema } from '../schemas/project.schema';
 import { FieldsModule } from '../fields/fields.module';
 import { User, UserSchema } from '../schemas/user.schema';
+import { ProjectsPermissionsModule } from './projects-permissions.module';
 
 @Module({
   imports: [
@@ -14,9 +14,10 @@ import { User, UserSchema } from '../schemas/user.schema';
       { name: User.name, schema: UserSchema },
     ]),
     FieldsModule,
+    ProjectsPermissionsModule,
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsService, ProjectsPermissionsService],
-  exports: [ProjectsService, ProjectsPermissionsService],
+  providers: [ProjectsService],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

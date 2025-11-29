@@ -282,8 +282,6 @@ export class ProjectsController {
     return { role };
   }
 
-  // ========== ENDPOINTS DE COLABORADORES (ALIAS) ==========
-
   /**
    * Agregar colaborador (alias de grantPermission)
    */
@@ -353,5 +351,98 @@ export class ProjectsController {
     console.log(`📬 DELETE /projects/${id}/collaborators/${targetUserId}`);
     const userId = this.getUserIdFromToken(auth);
     return this.permissionsService.revokePermission(id, userId, targetUserId);
+  }
+
+  // ========== ENDPOINTS DE GRUPOS EN PROYECTOS ==========
+
+  /**
+   * Otorgar permiso a un grupo
+   */
+  @Post(':id/group-permissions')
+  async grantGroupPermission(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { groupId: string; role: ProjectRole },
+  ) {
+    console.log(`📬 POST /projects/${id}/group-permissions`);
+    console.log(`👥 Grupo: ${body.groupId}, Rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.grantGroupPermission(
+      id,
+      userId,
+      body.groupId,
+      body.role,
+    );
+  }
+
+  /**
+   * Listar grupos con acceso al proyecto
+   */
+  @Get(':id/group-permissions')
+  async getProjectGroups(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/group-permissions`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.getProjectGroups(id, userId);
+  }
+
+  /**
+   * Actualizar rol de un grupo
+   */
+  @Patch(':id/group-permissions/:groupId')
+  async updateGroupPermission(
+    @Param('id') id: string,
+    @Param('groupId') groupId: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { role: ProjectRole },
+  ) {
+    console.log(`📬 PATCH /projects/${id}/group-permissions/${groupId}`);
+    console.log(`📝 Nuevo rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+
+    // Revocar permiso anterior y otorgar nuevo
+    await this.permissionsService.revokeGroupPermission(id, userId, groupId);
+    return this.permissionsService.grantGroupPermission(
+      id,
+      userId,
+      groupId,
+      body.role,
+    );
+  }
+
+  /**
+   * Revocar permiso de un grupo
+   */
+  @Delete(':id/group-permissions/:groupId')
+  async revokeGroupPermission(
+    @Param('id') id: string,
+    @Param('groupId') groupId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 DELETE /projects/${id}/group-permissions/${groupId}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.revokeGroupPermission(id, userId, groupId);
+  }
+
+  /**
+   * Obtener grupos disponibles del usuario para agregar al proyecto
+   */
+  @Get(':id/available-groups')
+  async getAvailableGroups(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/available-groups`);
+    const userId = this.getUserIdFromToken(auth);
+
+    // Verificar que sea owner del proyecto
+    await this.permissionsService.requireOwner(id, userId);
+
+    // Obtener grupos del usuario
+    return this.permissionsService.getUserGroups(userId);
   }
 }
