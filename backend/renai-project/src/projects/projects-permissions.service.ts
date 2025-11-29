@@ -12,11 +12,15 @@ import {
   ProjectRole,
   ProjectVisibility,
 } from '../schemas/project.schema';
+import { User } from '../schemas/user.schema';
+import { Group, GroupDocument } from '../schemas/group.schema';
 
 @Injectable()
 export class ProjectsPermissionsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
   ) {}
 
   async canAccess(projectId: string, userId: string): Promise<boolean> {
@@ -36,8 +40,25 @@ export class ProjectsPermissionsService {
       (p) => p.userId.toString() === userId,
     );
 
-    return hasPermission;
+    if (hasPermission) {
+      return true;
+    }
+    // ✅ Verificar permisos por grupo
+    const userGroups = await this.getUserGroups(userId);
+
+    if (userGroups.length > 0) {
+      const hasGroupPermission = project.groupPermissions.some((gp) =>
+        userGroups.some((ug) => ug._id.toString() === gp.groupId.toString()),
+      );
+
+      if (hasGroupPermission) {
+        return true;
+      }
+    }
+
+    return false;
   }
+
 
   async canEdit(projectId: string, userId: string): Promise<boolean> {
     const project = await this.projectModel.findById(projectId);
@@ -52,7 +73,24 @@ export class ProjectsPermissionsService {
       (p) => p.userId.toString() === userId,
     );
 
-    return permission?.role === ProjectRole.EDITOR;
+    if (permission?.role === ProjectRole.EDITOR) {
+      return true;
+    }
+    const userGroups = await this.getUserGroups(userId);
+
+    if (userGroups.length > 0) {
+      const hasEditorGroupPermission = project.groupPermissions.some(
+        (gp) =>
+          gp.role === ProjectRole.EDITOR &&
+          userGroups.some((ug) => ug._id.toString() === gp.groupId.toString()),
+      );
+
+      if (hasEditorGroupPermission) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async isOwner(projectId: string, userId: string): Promise<boolean> {
@@ -140,13 +178,16 @@ export class ProjectsPermissionsService {
   ) {
     await this.requireOwner(projectId, ownerId);
 
-    const targetUser = await this.findUserByEmail(email);
+    const targetUser = await this.userModel.findOne({
+      email: email.toLowerCase().trim()
+    });
+
     if (!targetUser) {
       throw new BadRequestException('Usuario no encontrado con ese email');
     }
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -160,21 +201,66 @@ export class ProjectsPermissionsService {
     );
 
     if (existingIndex >= 0) {
+      // Actualizar rol existente
       project.permissions[existingIndex].role = role;
-      console.log(`✅ Rol actualizado: ${email} → ${role}`);
+      console.log( `Rol actualizado: ${email} → ${role}`);
     } else {
+      // Agregar nuevo permiso
       project.permissions.push({
         userId: targetUser._id,
-        email: email,
+        email: email.toLowerCase().trim(),
         role,
         grantedAt: new Date(),
         grantedBy: new Types.ObjectId(ownerId),
       });
-      console.log(`✅ Permiso otorgado: ${email} → ${role}`);
+      console.log( `Permiso otorgado: ${email} → ${role}`);
     }
 
-    await project.save();
-    return project;
+    // Marcar como modificado explícitamente
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
+    console.log(`💾 Proyecto guardado. Total permisos: ${savedProject.permissions.length}`);
+
+    return savedProject;
+  }
+
+  //Actualizar rol sin revocar
+  async updatePermissionRole(
+    projectId: string,
+    ownerId: string,
+    targetUserId: string,
+    newRole: ProjectRole,
+  ) {
+    await this.requireOwner(projectId, ownerId);
+
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const permissionIndex = project.permissions.findIndex(
+      (p) => p.userId.toString() === targetUserId,
+    );
+
+    if (permissionIndex === -1) {
+      throw new BadRequestException(
+        'El usuario no tiene permisos en este proyecto',
+      );
+    }
+
+    // Actualizar solo el rol
+    project.permissions[permissionIndex].role = newRole;
+
+    // Marcar como modificado
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
+    console.log(`✏️ Rol actualizado para ${targetUserId}: ${newRole}`);
+    console.log(`💾 Total permisos: ${savedProject.permissions.length}`);
+
+    return savedProject;
   }
 
   async revokePermission(
@@ -185,7 +271,7 @@ export class ProjectsPermissionsService {
     await this.requireOwner(projectId, ownerId);
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -202,9 +288,14 @@ export class ProjectsPermissionsService {
       );
     }
 
-    await project.save();
+    // Marcar como modificado
+    project.markModified('permissions');
+    const savedProject = await project.save();
+
     console.log(`🚫 Permiso revocado para usuario: ${targetUserId}`);
-    return project;
+    console.log(`💾 Total permisos restantes: ${savedProject.permissions.length}`);
+
+    return savedProject;
   }
 
   async changeVisibility(
@@ -215,7 +306,7 @@ export class ProjectsPermissionsService {
     await this.requireOwner(projectId, ownerId);
 
     const project = await this.projectModel.findById(projectId);
-    
+
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
@@ -241,7 +332,10 @@ export class ProjectsPermissionsService {
 
     const populatedPermissions = await Promise.all(
       project.permissions.map(async (perm) => {
-        const user = await this.findUserById(perm.userId.toString());
+        const user = await this.userModel
+          .findById(perm.userId.toString())
+          .select('name email picture');
+
         return {
           userId: perm.userId,
           email: perm.email,
@@ -265,15 +359,127 @@ export class ProjectsPermissionsService {
     };
   }
 
-  private findUserByEmail(email: string) {
-    const mongoose = require('mongoose');
-    const User = mongoose.model('User');
-    return User.findOne({ email: email.toLowerCase().trim() });
+  async grantGroupPermission(
+    projectId: string,
+    ownerId: string,
+    groupId: string,
+    role: ProjectRole,
+  ) {
+    await this.requireOwner(projectId, ownerId);
+
+    const group = await this.groupModel.findById(groupId);
+    if (!group) {
+      throw new BadRequestException('Grupo no encontrado');
+    }
+
+    const project = await this.projectModel.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const existingIndex = project.groupPermissions.findIndex(
+      (p) => p.groupId.toString() === groupId,
+    );
+
+    if (existingIndex >= 0) {
+      project.groupPermissions[existingIndex].role = role;
+      console.log(`✅ Rol de grupo actualizado: ${group.name} → ${role}`);
+    } else {
+      project.groupPermissions.push({
+        groupId: new Types.ObjectId(groupId),
+        role,
+        grantedAt: new Date(),
+        grantedBy: new Types.ObjectId(ownerId),
+      });
+      console.log(`✅ Permiso otorgado a grupo: ${group.name} → ${role}`);
+    }
+
+    project.markModified('groupPermissions');
+    const savedProject = await project.save();
+
+    console.log(`💾 Total permisos de grupo: ${savedProject.groupPermissions.length}`);
+    return savedProject;
   }
 
-  private findUserById(userId: string) {
-    const mongoose = require('mongoose');
-    const User = mongoose.model('User');
-    return User.findById(userId).select('name email picture');
+  // ✅ NUEVO: Revocar permiso de un grupo
+  async revokeGroupPermission(
+    projectId: string,
+    ownerId: string,
+    groupId: string,
+  ) {
+    await this.requireOwner(projectId, ownerId);
+
+    const project = await this.projectModel.findById(projectId);
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const initialCount = project.groupPermissions.length;
+
+    project.groupPermissions = project.groupPermissions.filter(
+      (p) => p.groupId.toString() !== groupId,
+    );
+
+    if (project.groupPermissions.length === initialCount) {
+      throw new BadRequestException(
+        'El grupo no tiene permisos en este proyecto',
+      );
+    }
+
+    project.markModified('groupPermissions');
+    const savedProject = await project.save();
+
+    console.log(`🚫 Permiso de grupo revocado: ${groupId}`);
+    console.log(`💾 Total permisos de grupo restantes: ${savedProject.groupPermissions.length}`);
+
+    return savedProject;
+  }
+
+  // ✅ NUEVO: Obtener grupos con acceso al proyecto
+  async getProjectGroups(projectId: string, requesterId: string) {
+    await this.requireAccess(projectId, requesterId);
+
+    const project = await this.projectModel.findById(projectId).exec();
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const populatedGroups = await Promise.all(
+      project.groupPermissions.map(async (perm) => {
+        const group = await this.groupModel.findById(perm.groupId);
+
+        return {
+          groupId: perm.groupId,
+          role: perm.role,
+          grantedAt: perm.grantedAt,
+          group: group
+            ? {
+                name: group.name,
+                description: group.description,
+                memberCount: group.memberCount,
+              }
+            : null,
+        };
+      }),
+    );
+
+    return {
+      groups: populatedGroups,
+    };
+  }
+
+  // ✅ NUEVO: Obtener grupos del usuario
+  async getUserGroups(userId: string) {
+    // Grupos donde es owner
+    const ownedGroups = await this.groupModel
+      .find({ ownerId: new Types.ObjectId(userId) })
+      .exec();
+
+    // Grupos donde es miembro
+    const memberGroups = await this.groupModel
+      .find({ 'members.userId': new Types.ObjectId(userId) })
+      .exec();
+
+    return [...ownedGroups, ...memberGroups];
   }
 }

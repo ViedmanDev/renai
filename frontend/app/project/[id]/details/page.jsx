@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -15,12 +14,14 @@ import AppsIcon from "@mui/icons-material/Apps";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import { useProjects } from "@/contexts/ProjectContext";
+import { useAuth } from "@/contexts/AuthContext"; 
 import DetailTypeSelector from "@/components/DetailTypeSelector";
 import SubOptionsModal from "@/components/SubOptionsModal";
 
 export default function ProjectDetailsPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth(); 
   const {
     currentProject,
     selectedDetails,
@@ -85,7 +86,18 @@ export default function ProjectDetailsPage() {
           <Typography variant="body1">
             {currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}
           </Typography>
-          <Avatar sx={{ bgcolor: "#5e35b1" }}>J</Avatar>
+          <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
+            <Avatar
+              sx={{
+                bgcolor: "#5e35b1",
+                width: { xs: 32, sm: 40 },
+                height: { xs: 32, sm: 40 },
+              }}
+              src={user?.picture}
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </Avatar>
+          </IconButton>
         </Box>
       </Box>
 

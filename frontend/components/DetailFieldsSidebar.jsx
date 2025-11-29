@@ -55,24 +55,24 @@ export default function DetailFieldsSidebar({ details, onDetailClick, selectedDe
                         <Box {...provided.dragHandleProps} sx={{ display: "flex", mr: 1, cursor: "grab" }}>
                           <DragIndicatorIcon sx={{ color: "#9e9e9e", fontSize: 20 }} />
                         </Box>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Typography variant="body2">
-                                {detail.icon} {detail.name}
-                              </Typography>
-                            </Box>
-                          }
-                          secondary={
-                            detail.selectedSubOption && (
+                        
+                        {/* ✅ CORREGIDO: Usar Box en lugar de ListItemText secondary */}
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="body2">
+                              {detail.icon} {detail.name}
+                            </Typography>
+                          </Box>
+                          {detail.selectedSubOption && (
+                            <Box sx={{ mt: 0.5 }}>
                               <Chip
                                 label={detail.selectedSubOption}
                                 size="small"
-                                sx={{ mt: 0.5, height: 20, fontSize: "0.7rem" }}
+                                sx={{ height: 20, fontSize: "0.7rem" }}
                               />
-                            )
-                          }
-                        />
+                            </Box>
+                          )}
+                        </Box>
                       </ListItemButton>
                       {index < details.length - 1 && <Divider />}
                     </Box>

@@ -15,7 +15,7 @@ import { ProjectVisibility, ProjectRole } from '../schemas/project.schema';
 import * as jwt from 'jsonwebtoken';
 
 @Controller('projects')
-export class ProjectsController {
+export class ProjectsController   {
   constructor(
     private projectsService: ProjectsService,
     private permissionsService: ProjectsPermissionsService,
@@ -48,6 +48,8 @@ export class ProjectsController {
       description?: string;
       coverImage?: string;
       fromTemplate?: boolean;
+      visibility?: string;
+      folderId?: string;
     },
   ) {
     const userId = this.getUserIdFromToken(auth);
@@ -57,6 +59,8 @@ export class ProjectsController {
       body.description,
       body.coverImage,
       body.fromTemplate,
+      body.visibility,
+      body.folderId,
     );
   }
 
@@ -67,6 +71,21 @@ export class ProjectsController {
   async findAll(@Headers('authorization') auth: string) {
     const userId = this.getUserIdFromToken(auth);
     return this.projectsService.findUserProjects(userId);
+  }
+
+  /**
+  * Actualizar orden de proyectos
+  */
+  @Patch('reorder')
+  async reorderProjects(
+    @Headers('authorization') auth: string,
+    @Body() body: { projectIds: string[] },
+  ) {
+    console.log('📬 PATCH /projects/reorder');
+    console.log('📝 Nuevo orden:', body.projectIds);
+
+    const userId = this.getUserIdFromToken(auth);
+    return this.projectsService.reorderProjects(userId, body.projectIds);
   }
 
   /**
@@ -123,6 +142,51 @@ export class ProjectsController {
     await this.permissionsService.requireEdit(id, userId);
 
     return this.projectsService.updateSelectedDetails(id, body.selectedDetails);
+  }
+
+  /**
+   * Actualizar campos personalizados (EAV)
+   */
+  @Patch(':id/custom-fields')
+  async updateCustomFields(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { customFields: Array<{ field: string; value: any }> },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireEdit(id, userId);
+
+    return this.projectsService.updateCustomFields(id, body.customFields || []);
+  }
+
+  /**
+   * Validar campos personalizados (sin guardar)
+   */
+  @Post(':id/custom-fields/validate')
+  async validateCustomFields(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { customFields: Array<{ field: string; value: any }> },
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireAccess(id, userId);
+    const normalized = await this.projectsService.validateCustomFields(
+      body.customFields || [],
+    );
+    return { ok: true, normalized };
+  }
+
+  /**
+   * Obtener definiciones de campos + valores del proyecto
+   */
+  @Get(':id/custom-fields')
+  async getFieldsWithValues(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const userId = this.getUserIdFromToken(auth);
+    await this.permissionsService.requireAccess(id, userId);
+    return this.projectsService.getFieldsWithValues(id);
   }
 
   /**
@@ -231,5 +295,169 @@ export class ProjectsController {
     const role = await this.permissionsService.getUserRole(id, userId);
 
     return { role };
+  }
+
+  /**
+   * Agregar colaborador (alias de grantPermission)
+   */
+  @Post(':id/collaborators')
+  async addCollaborator(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { email: string; role: ProjectRole },
+  ) {
+    console.log(`📬 POST /projects/${id}/collaborators`);
+    console.log(`📧 Email: ${body.email}, Rol: ${body.role}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.grantPermission(
+      id,
+      userId,
+      body.email,
+      body.role,
+    );
+  }
+
+  /**
+   * Listar colaboradores (alias de getProjectUsers)
+   */
+  @Get(':id/collaborators')
+  async getCollaborators(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/collaborators`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.getProjectUsers(id, userId);
+  }
+
+  /**
+   * Actualizar rol de colaborador
+   */
+  @Patch(':id/collaborators/:userId')
+  async updateCollaboratorRole(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { role: ProjectRole },
+  ) {
+    console.log(`📬 PATCH /projects/${id}/collaborators/${targetUserId}`);
+    console.log(`📝 Nuevo rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+
+    // Usar el nuevo método updatePermissionRole
+    return this.permissionsService.updatePermissionRole(
+      id,
+      userId,
+      targetUserId,
+      body.role,
+    );
+  }
+
+  /**
+   * Remover colaborador (alias de revokePermission)
+   */
+  @Delete(':id/collaborators/:userId')
+  async removeCollaborator(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 DELETE /projects/${id}/collaborators/${targetUserId}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.revokePermission(id, userId, targetUserId);
+  }
+
+  // ========== ENDPOINTS DE GRUPOS EN PROYECTOS ==========
+
+  /**
+   * Otorgar permiso a un grupo
+   */
+  @Post(':id/group-permissions')
+  async grantGroupPermission(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { groupId: string; role: ProjectRole },
+  ) {
+    console.log(`📬 POST /projects/${id}/group-permissions`);
+    console.log(`👥 Grupo: ${body.groupId}, Rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.grantGroupPermission(
+      id,
+      userId,
+      body.groupId,
+      body.role,
+    );
+  }
+
+  /**
+   * Listar grupos con acceso al proyecto
+   */
+  @Get(':id/group-permissions')
+  async getProjectGroups(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/group-permissions`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.getProjectGroups(id, userId);
+  }
+
+  /**
+   * Actualizar rol de un grupo
+   */
+  @Patch(':id/group-permissions/:groupId')
+  async updateGroupPermission(
+    @Param('id') id: string,
+    @Param('groupId') groupId: string,
+    @Headers('authorization') auth: string,
+    @Body() body: { role: ProjectRole },
+  ) {
+    console.log(`📬 PATCH /projects/${id}/group-permissions/${groupId}`);
+    console.log(`📝 Nuevo rol: ${body.role}`);
+
+    const userId = this.getUserIdFromToken(auth);
+
+    // Revocar permiso anterior y otorgar nuevo
+    await this.permissionsService.revokeGroupPermission(id, userId, groupId);
+    return this.permissionsService.grantGroupPermission(
+      id,
+      userId,
+      groupId,
+      body.role,
+    );
+  }
+
+  /**
+   * Revocar permiso de un grupo
+   */
+  @Delete(':id/group-permissions/:groupId')
+  async revokeGroupPermission(
+    @Param('id') id: string,
+    @Param('groupId') groupId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 DELETE /projects/${id}/group-permissions/${groupId}`);
+    const userId = this.getUserIdFromToken(auth);
+    return this.permissionsService.revokeGroupPermission(id, userId, groupId);
+  }
+
+  /**
+   * Obtener grupos disponibles del usuario para agregar al proyecto
+   */
+  @Get(':id/available-groups')
+  async getAvailableGroups(
+    @Param('id') id: string,
+    @Headers('authorization') auth: string,
+  ) {
+    console.log(`📬 GET /projects/${id}/available-groups`);
+    const userId = this.getUserIdFromToken(auth);
+
+    // Verificar que sea owner del proyecto
+    await this.permissionsService.requireOwner(id, userId);
+
+    // Obtener grupos del usuario
+    return this.permissionsService.getUserGroups(userId);
   }
 }

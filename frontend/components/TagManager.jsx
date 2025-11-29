@@ -11,17 +11,17 @@
  * - Visualizar todas las etiquetas
  *
  * CONEXIÓN A BD:
- * Tabla: tags
- * Campos: id, name, color, created_at, updated_at
+ * Colección: banderas
+ * Campos: _id, name, color, created_at, updated_at
  *
- * API Endpoints:
+ * API Endpoints (usando config/api.js):
  * - GET /api/tags - Listar todas las etiquetas
  * - POST /api/tags - Crear nueva etiqueta
  * - PUT /api/tags/:id - Actualizar etiqueta
  * - DELETE /api/tags/:id - Eliminar etiqueta
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -36,10 +36,23 @@ import {
   DialogContent,
   DialogActions,
   Typography,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+// Para Next.js, las rutas API son relativas
+const API_BASE = "/api";
+const API_ENDPOINTS = {
+  tags: {
+    list: "/tags",
+    create: "/tags",
+    update: (id) => `/tags/${id}`,
+    delete: (id) => `/tags/${id}`,
+  },
+};
 import "./TagManager.css";
 
 // Colores predefinidos para etiquetas
@@ -54,15 +67,71 @@ const TAG_COLORS = [
 ];
 
 export default function TagManager() {
-  const [tags, setTags] = useState([
-    { id: "1", name: "Costo", color: "#ffa726" },
-    { id: "2", name: "Revisar", color: "#ffee58" },
-    { id: "3", name: "Factibilidad", color: "#66bb6a" },
-  ]);
+  const [tags, setTags] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTag, setEditingTag] = useState(null);
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(TAG_COLORS[0].value);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  /**
+   * Carga las etiquetas desde la API al montar el componente
+   */
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  /**
+   * Obtiene todas las etiquetas desde la API
+   */
+  const fetchTags = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.tags.list}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar las etiquetas");
+      }
+
+      const result = await response.json();
+
+      // Adaptamos la respuesta según el formato que devuelva tu backend
+      const tagsData = Array.isArray(result) ? result : result.data || [];
+
+      // Normalizamos los IDs (_id -> id)
+      const normalizedTags = tagsData.map((tag) => ({
+        id: tag._id || tag.id,
+        name: tag.name,
+        color: tag.color,
+        created_at: tag.created_at,
+        updated_at: tag.updated_at,
+      }));
+
+      setTags(normalizedTags);
+    } catch (error) {
+      console.error("Error al cargar etiquetas:", error);
+      showSnackbar("Error de conexión al cargar etiquetas", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Muestra un mensaje temporal
+   */
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   /**
    * Abre el diálogo para crear o editar etiqueta
@@ -82,42 +151,132 @@ export default function TagManager() {
 
   /**
    * Guarda la etiqueta (crear o actualizar)
-   * TODO: Conectar con API para persistir en BD
    */
-  const handleSaveTag = () => {
+  const handleSaveTag = async () => {
     if (!tagName.trim()) return;
 
-    if (editingTag) {
-      // Actualizar etiqueta existente
-      setTags(
-        tags.map((t) =>
-          t.id === editingTag.id ? { ...t, name: tagName, color: tagColor } : t
-        )
-      );
-    } else {
-      // Crear nueva etiqueta
-      const newTag = {
-        id: Date.now().toString(),
-        name: tagName,
-        color: tagColor,
-      };
-      setTags([...tags, newTag]);
-    }
+    try {
+      if (editingTag) {
+        // Actualizar etiqueta existente
+        const response = await fetch(
+          `${API_BASE}${API_ENDPOINTS.tags.update(editingTag.id)}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: tagName,
+              color: tagColor,
+            }),
+          }
+        );
 
-    setOpenDialog(false);
-    setTagName("");
-    setTagColor(TAG_COLORS[0].value);
+        if (!response.ok) {
+          throw new Error("Error al actualizar la etiqueta");
+        }
+
+        const result = await response.json();
+
+        setTags(
+          tags.map((t) =>
+            t.id === editingTag.id
+              ? {
+                  ...t,
+                  name: tagName,
+                  color: tagColor,
+                  updated_at: result.updated_at || new Date(),
+                }
+              : t
+          )
+        );
+        showSnackbar("Etiqueta actualizada correctamente");
+      } else {
+        // Crear nueva etiqueta
+        const response = await fetch(
+          `${API_BASE}${API_ENDPOINTS.tags.create}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: tagName,
+              color: tagColor,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al crear la etiqueta");
+        }
+
+        const result = await response.json();
+
+        // Normalizamos el ID del nuevo tag
+        const newTag = {
+          id: result._id || result.id,
+          name: result.name || tagName,
+          color: result.color || tagColor,
+          created_at: result.created_at || new Date(),
+          updated_at: result.updated_at || new Date(),
+        };
+
+        setTags([...tags, newTag]);
+        showSnackbar("Etiqueta creada correctamente");
+      }
+
+      setOpenDialog(false);
+      setTagName("");
+      setTagColor(TAG_COLORS[0].value);
+    } catch (error) {
+      console.error("Error al guardar etiqueta:", error);
+      showSnackbar(error.message || "Error al guardar la etiqueta", "error");
+    }
   };
 
   /**
    * Elimina una etiqueta
-   * TODO: Conectar con API para eliminar de BD
    */
-  const handleDeleteTag = (tagId) => {
-    if (confirm("¿Estás seguro de eliminar esta etiqueta?")) {
+  const handleDeleteTag = async (tagId) => {
+    if (!confirm("¿Estás seguro de eliminar esta etiqueta?")) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE}${API_ENDPOINTS.tags.delete(tagId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la etiqueta");
+      }
+
       setTags(tags.filter((t) => t.id !== tagId));
+      showSnackbar("Etiqueta eliminada correctamente");
+    } catch (error) {
+      console.error("Error al eliminar etiqueta:", error);
+      showSnackbar(error.message || "Error al eliminar la etiqueta", "error");
     }
   };
+
+  if (loading) {
+    return (
+      <Box
+        className="tag-manager"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box className="tag-manager">
@@ -133,42 +292,50 @@ export default function TagManager() {
         </Button>
       </Box>
 
-      <List className="tag-manager__list">
-        {tags.map((tag) => (
-          <ListItem
-            key={tag.id}
-            className="tag-manager__list-item"
-            secondaryAction={
-              <Box className="tag-manager__actions">
-                <IconButton
-                  edge="end"
-                  onClick={() => handleOpenDialog(tag)}
-                  size="small"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  edge="end"
-                  onClick={() => handleDeleteTag(tag.id)}
-                  size="small"
-                  color="error"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            }
-          >
-            <Chip
-              label={tag.name}
-              sx={{ bgcolor: tag.color, color: "white", mr: 2 }}
-            />
-            <ListItemText
-              primary={tag.name}
-              secondary={`Color: ${tag.color}`}
-            />
-          </ListItem>
-        ))}
-      </List>
+      {tags.length === 0 ? (
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="body1" color="text.secondary">
+            No hay etiquetas creadas. ¡Crea tu primera etiqueta!
+          </Typography>
+        </Box>
+      ) : (
+        <List className="tag-manager__list">
+          {tags.map((tag) => (
+            <ListItem
+              key={tag.id}
+              className="tag-manager__list-item"
+              secondaryAction={
+                <Box className="tag-manager__actions">
+                  <IconButton
+                    edge="end"
+                    onClick={() => handleOpenDialog(tag)}
+                    size="small"
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    edge="end"
+                    onClick={() => handleDeleteTag(tag.id)}
+                    size="small"
+                    color="error"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              }
+            >
+              <Chip
+                label={tag.name}
+                sx={{ bgcolor: tag.color, color: "white", mr: 2 }}
+              />
+              <ListItemText
+                primary={tag.name}
+                secondary={`Color: ${tag.color}`}
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
 
       {/* Dialog para crear/editar etiqueta */}
       <Dialog
@@ -188,6 +355,7 @@ export default function TagManager() {
               onChange={(e) => setTagName(e.target.value)}
               fullWidth
               autoFocus
+              sx={{ mt: 1 }}
             />
 
             <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
@@ -231,6 +399,22 @@ export default function TagManager() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

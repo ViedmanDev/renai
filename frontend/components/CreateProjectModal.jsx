@@ -8,6 +8,7 @@
  * - open (boolean): Controla si el modal está visible
  * - onClose (function): Callback cuando se cierra el modal
  * - onCreateProject (function): Callback cuando se crea un proyecto
+ * - selectedFolderId (string): ID de la carpeta seleccionada (✅ NUEVO)
  *
  * ESTADO:
  * - projectName: Nombre del proyecto
@@ -17,7 +18,7 @@
  *
  * CONEXIÓN A BD:
  * Al crear proyecto, enviar a: POST /api/projects
- * Body: { name, description, coverImage (base64 o FormData), fromTemplate }
+ * Body: { name, description, coverImage (base64 o FormData), fromTemplate, folderId }
  *
  * CÓMO EXTENDER:
  * - Agregar más campos: categoría, etc.
@@ -25,6 +26,7 @@
  * - Implementar crop de imagen antes de guardar
  */
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Dialog,
@@ -35,12 +37,19 @@ import {
   IconButton,
   Typography,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
-export default function CreateProjectModal({ open, onClose, onCreateProject }) {
+export default function CreateProjectModal({ 
+  open, 
+  onClose, 
+  onCreateProject,
+  selectedFolderId 
+}) {
+  const router = useRouter()
   // Estado para el nombre del proyecto
   const [projectName, setProjectName] = useState("");
   // Estado para la descripción del proyecto
@@ -49,12 +58,17 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
   const [coverImage, setCoverImage] = useState(null);
   // Estado para la vista previa de la imagen
   const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Estado para errores de validación
   const [errors, setErrors] = useState({
     name: "",
     description: "",
   });
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const validateName = (value) => {
     if (!value || value.trim().length === 0) {
       return "El nombre del proyecto es requerido";
@@ -67,6 +81,7 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
     }
     return "";
   };
+
   //handleNameChange con validación
   const handleNameChange = (e) => {
     const value = e.target.value;
@@ -98,26 +113,75 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
    * Crea el proyecto con o sin plantilla
    * Incluye la imagen de portada si fue seleccionada
    */
-  const handleCreate = (fromTemplate = false) => {
+  const handleCreate = async (fromTemplate = false) => {
     const nameError = validateName(projectName);
     if (nameError) {
       setErrors(prev => ({ ...prev, name: nameError }));
       return;
     }
 
-    if (projectName.trim()) {
-      onCreateProject({
-        name: projectName,
-        description: projectDescription,
-        coverImage: imagePreview,
-        fromTemplate,
+    if (!projectName.trim()) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      //Enviar al backend con folderId
+      const res = await fetch(`${API_URL}/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: projectName.trim(),
+          description: projectDescription.trim() || "",
+          coverImage: imagePreview || null,
+          fromTemplate,
+          visibility: "private",
+          folderId: selectedFolderId || null,
+        }),
       });
-      // Limpiar estado
-      setProjectName("");
-      setProjectDescription("");
-      setCoverImage(null);
-      setImagePreview(null);
-      setErrors({ name: "", description: "" });
+
+      if (res.ok) {
+        const newProject = await res.json();
+        console.log(" Proyecto creado:", newProject);
+        console.log("📁 En carpeta:", selectedFolderId || "Sin carpeta");
+
+        // Llamar callback con el proyecto creado
+        onCreateProject(newProject);
+
+        // Limpiar estado
+        setProjectName("");
+        setProjectDescription("");
+        setCoverImage(null);
+        setImagePreview(null);
+        setErrors({ name: "", description: "" });
+
+        const projectId = newProject._id || newProject.id;
+        if (projectId) {
+          console.log("🔀 Redirigiendo a:", `/project/${projectId}/details`);
+          router.push(`/project/${projectId}/details`);
+        }
+
+        // Llamar callback (opcional, para actualizar lista)
+        if (onCreateProject) {
+          onCreateProject(newProject);
+        }
+        
+        // Cerrar modal
+        onClose();
+      } else {
+        const data = await res.json();
+        setError(data.message || "Error al crear proyecto");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setError("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -147,6 +211,20 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
       </Box>
 
       <DialogContent>
+        {/* ✅ NUEVO: Mostrar error si existe */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
+
+        {/*Mostrar info de carpeta */}
+        {selectedFolderId && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            📁 Este proyecto se creará en la carpeta seleccionada
+          </Alert>
+        )}
+
         <Box
           sx={{
             border: "1px solid #e0e0e0",
@@ -168,6 +246,7 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
               id="cover-image-upload"
               type="file"
               onChange={handleImageChange}
+              disabled={loading}
             />
             <label htmlFor="cover-image-upload">
               <Box
@@ -180,11 +259,11 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
                   overflow: "hidden",
                   "&:hover": {
-                    borderColor: "#7c4dff",
-                    bgcolor: "#f5f5f5",
+                    borderColor: loading ? "#ccc" : "#7c4dff",
+                    bgcolor: loading ? "transparent" : "#f5f5f5",
                   },
                 }}
               >
@@ -221,11 +300,11 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
             variant="outlined"
             value={projectName}
             onChange={handleNameChange}
-            //onChange={(e) => setProjectName(e.target.value)}
             error={!!errors.name}
             helperText={errors.name}
             placeholder="Ingresa el nombre"
             sx={{ mb: 2 }}
+            disabled={loading}
           />
 
           <Typography variant="body2" sx={{ mb: 2 }}>
@@ -241,13 +320,13 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
             onChange={(e) => setProjectDescription(e.target.value)}
             placeholder="Breve descripción del proyecto"
             sx={{ mb: 2 }}
+            disabled={loading}
           />
 
           <Button
             variant="contained"
             onClick={() => handleCreate(false)}
-            disabled={!projectName.trim() || !!errors.name}
-            //disabled={!projectName.trim()}
+            disabled={!projectName.trim() || !!errors.name || loading}
             sx={{
               bgcolor: "#2c2c2c",
               color: "white",
@@ -258,16 +337,25 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
               "&:hover": {
                 bgcolor: "#1a1a1a",
               },
+              "&:disabled": {
+                bgcolor: "#ccc",
+              },
             }}
           >
-            Crear en blanco
+            {loading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
+                Creando...
+              </>
+            ) : (
+              "Crear en blanco"
+            )}
           </Button>
 
           <Button
             variant="contained"
             onClick={() => handleCreate(true)}
-            disabled={!projectName.trim() || !!errors.name}
-            //disabled={!projectName.trim()}
+            disabled={!projectName.trim() || !!errors.name || loading}
             sx={{
               bgcolor: "#2c2c2c",
               color: "white",
@@ -278,9 +366,19 @@ export default function CreateProjectModal({ open, onClose, onCreateProject }) {
               "&:hover": {
                 bgcolor: "#1a1a1a",
               },
+              "&:disabled": {
+                bgcolor: "#ccc",
+              },
             }}
           >
-            Crear desde plantilla
+            {loading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1, color: "white" }} />
+                Creando...
+              </>
+            ) : (
+              "Crear desde plantilla"
+            )}
           </Button>
         </Box>
       </DialogContent>

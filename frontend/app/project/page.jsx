@@ -1,17 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
   Container,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   TextField,
   InputAdornment,
   Avatar,
   Button,
   Typography,
+  Alert,
+  Snackbar,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -26,57 +33,89 @@ import CreateProjectModal from "@/components/CreateProjectModal";
 import ProjectCard from "@/components/ProjectCard";
 import SetPasswordModal from "@/components/SetPasswordModal";
 import FoldersSidebar from "@/components/FoldersSidebar";
+import TagManager from "@/components/TagManager";
+import AdminDrawer from "@/components/AdminDrawer";
+import GroupManager from "@/components/GroupManager";
+import GroupIcon from "@mui/icons-material/Group";
 
 export default function HomePage() {
+  const [openGroupManager, setOpenGroupManager] = useState(false);
   const router = useRouter();
-  const { projects, createProject, setCurrentProject, reorderProjects } = useProjects();
-  const { user, logout } = useAuth();
+  const { projects, createProject, setCurrentProject, reorderProjects } =
+    useProjects();
+  const { user, logout, loading } = useAuth();
+  console.log('🏠 HomePage - user recibido:', user);
+  const [userKey, setUserKey] = useState(0)
   const { moveProjectToFolder, getProjectsByFolder } = useFolders();
-
   const [openModal, setOpenModal] = useState(false);
   const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [realProjects, setRealProjects] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [filteredProjects, setFilteredProjects] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [openAppModal, setOpenAppModal] = useState(false);
+  const [openTagManager, setOpenTagManager] = useState(false);
+  const [openApps, setOpenApps] = useState(false);
+  const [appsView, setAppsView] = useState("menu");
+  const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
+
+  // Estados para notificaciones
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
   // Cargar proyectos del backend
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        if (!token || token === "undefined" || token === "null") {
-          console.log("⚠️ No hay token válido, omitiendo carga de proyectos");
-          setLoadingProjects(false);
-          return;
-        }
-
-        const res = await fetch(`${API_URL}/projects`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          console.log("✅ Proyectos cargados del backend:", data);
-          setRealProjects(data);
-        } else {
-          console.log("⚠️ Error al cargar proyectos:", res.status);
-          if (res.status === 401) {
-            localStorage.removeItem("token");
-          }
-        }
-      } catch (error) {
-        console.error("Error cargando proyectos:", error);
-      } finally {
+      if (!token || token === "undefined" || token === "null") {
+        console.log("⚠️ No hay token válido, omitiendo carga de proyectos");
         setLoadingProjects(false);
+        return;
       }
-    };
 
+      const res = await fetch(`${API_URL}/projects`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Proyectos cargados del backend:", data);
+        setRealProjects(data);
+      } else {
+        console.log("⚠️ Error al cargar proyectos:", res.status);
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando proyectos:", error);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  
+  useEffect(() => {
+    console.log('👤 User cambió en HomePage:', user);
+    console.log('👤 User name:', user?.name);
+    console.log('👤 User _id:', user?._id);
+
+    // Forzar re-render
+    if (user) {
+      setUserKey(prev => prev + 1);
+    }
+  }, [user]);
+
+  useEffect(() => {
     fetchProjects();
   }, [API_URL]);
 
@@ -87,10 +126,15 @@ export default function HomePage() {
       setFilteredProjects(realProjects.length > 0 ? realProjects : projects);
     } else {
       // Filtrar por carpeta
-      loadProjectsByFolder(selectedFolderId);
+      const projectsInFolder = realProjects.filter(
+        (project) => project.folderId === selectedFolderId
+      );
+      console.log('📁 Proyectos en carpeta', selectedFolderId, ':', projectsInFolder);
+      setFilteredProjects(projectsInFolder);
     }
-  }, [selectedFolderId, realProjects, projects]);
+  }, [selectedFolderId, realProjects]);
 
+  /*
   const loadProjectsByFolder = async (folderId) => {
     setLoadingProjects(true);
     try {
@@ -103,51 +147,153 @@ export default function HomePage() {
       setLoadingProjects(false);
     }
   };
-
-  const handleCreateProject = (projectData) => {
-    const newProject = createProject(projectData);
-    setCurrentProject(newProject);
+  */
+  const handleCreateProject = async (projectData) => {
+    //const newProject = createProject(projectData);
+    //setCurrentProject(newProject);
     setOpenModal(false);
-    router.push(`/project/${newProject.id}/details`);
+    //router.push(`/project/${newProject.id}/details`);
+    setTimeout(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`${API_URL}/projects`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("✅ Proyectos recargados:", data.length);
+          setRealProjects(data);
+        }
+      } catch (error) {
+        console.error("Error recargando proyectos:", error);
+      }
+    }, 500);
   };
 
+  const visibleProjects = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) return filteredProjects;
+
+    return filteredProjects.filter((project) => {
+      const name = (project.name || "").toLowerCase();
+      const description = (project.description || "").toLowerCase();
+
+      return name.includes(term) || description.includes(term);
+    });
+  }, [filteredProjects, searchTerm]);
+
   const handleViewProject = (project) => {
+    console.log('👁️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id}`);
+    router.push(`/project/${projectId}`);
   };
 
   const handleEditProject = (project) => {
+    console.log('✏️ Proyecto recibido:', project);
+    const projectId = project._id || project.id;
+    console.log('📌 ID a usar:', projectId);
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido:', projectId);
+      alert('Error: No se pudo obtener el ID del proyecto');
+      return;
+    }
+
     setCurrentProject(project);
-    router.push(`/project/${project.id}/details`);
+    router.push(`/project/${projectId}/details`);
   };
 
   const handleDragEnd = async (result) => {
-    if (!result.destination) return;
+    // Si no hay destino, no hacer nada
+    if (!result.destination) {
+      return;
+    }
 
-    const { source, destination, draggableId } = result;
+    // Si la posición no cambió, no hacer nada
+    if (result.source.index === result.destination.index) {
+      return;
+    }
 
-    // Si se mueve a una carpeta diferente
-    if (destination.droppableId !== source.droppableId) {
-      const projectId = draggableId;
-      const newFolderId = destination.droppableId === "root" ? null : destination.droppableId;
+    console.log('🎯 Drag End:', {
+      from: result.source.index,
+      to: result.destination.index,
+    });
 
-      try {
-        await moveProjectToFolder(projectId, newFolderId);
-        
-        // Recargar proyectos
-        if (selectedFolderId === null) {
-          // Recargar todos
-          window.location.reload();
-        } else {
-          loadProjectsByFolder(selectedFolderId);
-        }
-      } catch (error) {
-        console.error("Error moviendo proyecto:", error);
-        alert("Error al mover el proyecto: " + error.message);
+    // Crear copia del array para no mutar el estado directamente
+    const items = Array.from(visibleProjects);
+
+    // Remover el item de la posición original
+    const [reorderedItem] = items.splice(result.source.index, 1);
+
+    // Insertar el item en la nueva posición
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Actualizar estado local INMEDIATAMENTE (UI responsiva)
+    setFilteredProjects(items);
+
+    // Guardar orden en la base de datos
+    try {
+      const projectIds = items.map(p => p._id || p.id);
+
+      console.log('💾 Guardando nuevo orden:', projectIds);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/projects/reorder`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ projectIds })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('✅ Orden guardado en BD:', data);
+
+        // Opcional: Mostrar notificación de éxito
+        setNotification({
+          open: true,
+          message: 'Orden actualizado correctamente',
+          severity: 'success'
+        });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('❌ Error al guardar orden:', res.status, errorData);
+
+        // Revertir el cambio si falla
+        fetchProjects();
+
+        setNotification({
+          open: true,
+          message: `Error al guardar orden: ${errorData.message || res.statusText}`,
+          severity: 'error'
+        });
       }
-    } else {
-      // Reordenar dentro de la misma carpeta
-      reorderProjects(source.index, destination.index);
+    } catch (error) {
+      console.error('❌ Error de conexión:', error);
+
+      // Revertir el cambio si falla
+      fetchProjects();
+
+      setNotification({
+        open: true,
+        message: 'Error de conexión al guardar orden',
+        severity: 'error'
+      });
     }
   };
 
@@ -160,6 +306,25 @@ export default function HomePage() {
   const handleSelectFolder = (folderId) => {
     setSelectedFolderId(folderId);
   };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa", display: "flex" }}>
@@ -184,16 +349,21 @@ export default function HomePage() {
             <IconButton>
               <ChevronLeftIcon />
             </IconButton>
-            <IconButton>
+            <IconButton
+              onClick={() => setOpenAdminDrawer(true)}
+              title="Panel administrativo"
+            >
               <AppsIcon />
             </IconButton>
             <TextField
               size="small"
               placeholder="Buscar proyectos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <MenuIcon />
+                    {/* <MenuIcon /> */}
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -214,18 +384,6 @@ export default function HomePage() {
 
             <Box sx={{ flexGrow: 1 }} />
 
-            {/* Botón de establecer contraseña */}
-            {user && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setOpenPasswordModal(true)}
-                sx={{ mr: 2 }}
-              >
-                Establecer Contraseña
-              </Button>
-            )}
-
             {/* Nombre del usuario */}
             <Button
               variant="text"
@@ -234,10 +392,24 @@ export default function HomePage() {
               {user?.name || "Usuario"}
             </Button>
 
+            {/* Mis Grupos */}
+            <IconButton
+              onClick={() => setOpenGroupManager(true)}
+              title="Mis grupos"
+              sx={{ color: 'black' }}
+            >
+              <GroupIcon />
+            </IconButton>
+
             {/* Avatar con foto de Google o inicial */}
-            <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture}>
-              {!user?.picture && (user?.name?.charAt(0) || "U")}
-            </Avatar>
+            <IconButton 
+              onClick={() => router.push("/profile")}
+              sx={{ p: 0 }}
+            >
+              <Avatar sx={{ bgcolor: "#5e35b1" }} src={user?.picture} key={`avatar-${userKey}`}>
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </Avatar>
+            </IconButton>
 
             {/* Botón de Logout */}
             <IconButton
@@ -260,8 +432,8 @@ export default function HomePage() {
                 : "📁 Carpeta seleccionada"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {filteredProjects.length} proyecto
-              {filteredProjects.length !== 1 ? "s" : ""}
+              {visibleProjects.length} proyecto
+              {visibleProjects.length !== 1 ? "s" : ""}
             </Typography>
           </Box>
 
@@ -296,10 +468,10 @@ export default function HomePage() {
                       <ProjectCard isNew onView={() => setOpenModal(true)} />
                     </Grid>
 
-                    {filteredProjects.map((project, index) => (
+                    {visibleProjects.map((project, index) => (
                       <Draggable
                         key={project.id || project._id}
-                        draggableId={project.id || project._id}
+                        draggableId={String(project.id || project._id)}
                         index={index}
                       >
                         {(provided, snapshot) => (
@@ -312,11 +484,9 @@ export default function HomePage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
+                            style={provided.draggableProps.style}
                             sx={{
                               opacity: snapshot.isDragging ? 0.8 : 1,
-                              transform: snapshot.isDragging
-                                ? "rotate(2deg)"
-                                : "none",
                               transition: "transform 0.2s ease",
                             }}
                           >
@@ -360,6 +530,7 @@ export default function HomePage() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onCreateProject={handleCreateProject}
+        selectedFolderId={selectedFolderId}
       />
 
       <SetPasswordModal
@@ -368,6 +539,32 @@ export default function HomePage() {
         onSuccess={() => {
           console.log("Contraseña establecida exitosamente");
         }}
+      />
+
+      {/* Panel Administrativo en dashboard*/}
+      <AdminDrawer
+        open={openAdminDrawer}
+        onClose={() => setOpenAdminDrawer(false)}
+      />
+
+      {/* Notificaciones */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+      <GroupManager
+        open={openGroupManager}
+        onClose={() => setOpenGroupManager(false)}
       />
     </Box>
   );

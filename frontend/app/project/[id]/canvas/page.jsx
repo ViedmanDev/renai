@@ -1,21 +1,4 @@
 "use client";
-
-/**
- * COMPONENTE: ProjectCanvasPage
- * PROPÓSITO: Vista final del proyecto mostrando todos los detalles configurados
- *
- * FUNCIONALIDADES:
- * - Visualización de detalles con valores formateados
- * - Drag and drop para reordenar detalles
- * - Edición de detalles mediante modal
- *  * - Búsqueda de detalles por banderas
- * - Navegación de regreso al inicio
- *
- * CONEXIÓN A BD:
- * Lee de: projects, project_details, project_detail_configs
- * Actualiza: project_details (orden), project_detail_configs (configuración)
- */
-
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -32,9 +15,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
+import TaskIcon from "@mui/icons-material/Task";
+import SellIcon from "@mui/icons-material/Sell";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import FlagIcon from "@mui/icons-material/Flag";
@@ -42,26 +28,41 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import DeleteIcon from "@mui/icons-material/Delete";
+import HomeIcon from "@mui/icons-material/Home";
+import SearchIcon from "@mui/icons-material/Search";
+import LockIcon from "@mui/icons-material/Lock";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useProjects } from "@/contexts/ProjectContext";
 import DetailFieldsSidebar from "@/components/DetailFieldsSidebar";
 import DetailConfigModal from "@/components/DetailConfigModal";
 import AdminDrawer from "@/components/AdminDrawer";
 import TaskManager from "@/components/TaskManager";
-import HomeIcon from "@mui/icons-material/Home";
+import ProjectPrivacySettings from "@/components/ProjectPrivacySettings";
+import ProjectCollaborators from "@/components/ProjectCollaborators";
+import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
+import { useAuth } from "@/contexts/AuthContext";
+import TagManager from "@/components/TagManager";
 import CloseIcon from "@mui/icons-material/Close";
-import SearchIcon from "@mui/icons-material/Search";
+import GroupIcon from "@mui/icons-material/Group";
+import SecurityIcon from "@mui/icons-material/Security";
+import GroupManager from "@/components/GroupManager";
+import ProjectGroupPermissions from "@/components/ProjectGroupPermissions";
+import PermissionsMatrix from "@/components/PermissionsMatrix";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
   const params = useParams();
+  const { user, loading } = useAuth();
   const {
     currentProject,
+    setCurrentProject,
     selectedDetails,
     reorderDetails,
     updateProject,
     deleteProject,
   } = useProjects();
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [openConfigModal, setOpenConfigModal] = useState(false);
   const [configuredDetails, setConfiguredDetails] = useState([]);
@@ -73,7 +74,62 @@ export default function ProjectCanvasPage() {
   );
   const [openAdminDrawer, setOpenAdminDrawer] = useState(false);
   const [openTaskManager, setOpenTaskManager] = useState(false);
+  const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
+
+  const [openGroupManager, setOpenGroupManager] = useState(false);
+  const [openProjectGroups, setOpenProjectGroups] = useState(false);
+  const [openPermissionsMatrix, setOpenPermissionsMatrix] = useState(false);
+  
+  // Estados para privacidad y colaboradores
+  const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
+  const [openCollaborators, setOpenCollaborators] = useState(false);
+  // Cargar proyecto desde backend
+  useEffect(() => {
+    const loadProject = async () => {
+      const token = localStorage.getItem("token");
+      if (!token || !params.id) {
+        console.warn('⚠️ No hay token o ID de proyecto');
+        return;
+      }
+
+      try {
+        console.log('📦 Intentando cargar proyecto:', params.id);
+        const res = await fetch(`${API_URL}/projects/${params.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const project = await res.json();
+          console.log('Proyecto cargado desde backend:', project);
+          setCurrentProject(project);
+        } else {
+          console.error('❌ Error cargando proyecto, status:', res.status);
+          // NO redirigir, permitir que funcione con datos locales
+        }
+      } catch (error) {
+        console.error('❌ Error de red:', error);
+        //NO redirigir, permitir que funcione offline
+      }
+    };
+
+    // Solo cargar si currentProject está null o es diferente
+    if (!currentProject || (currentProject._id !== params.id && currentProject.id !== params.id)) {
+      loadProject();
+    }
+  }, [params.id, API_URL]);
+
+  //Debug logs
+  useEffect(() => {
+    console.log('🔄 currentProject cambió:', currentProject);
+    console.log('👁️ Visibilidad actual:', currentProject?.visibility);
+  }, [currentProject]);
+
+  useEffect(() => {
+    console.log('👤 Usuario:', user);
+  }, [user]);
 
   useEffect(() => {
     if (currentProject) {
@@ -86,6 +142,21 @@ export default function ProjectCanvasPage() {
     setSelectedDetail(detail);
     setOpenConfigModal(true);
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const handleSaveDetail = (configuredDetail) => {
     const exists = configuredDetails.find((d) => d.id === configuredDetail.id);
@@ -246,7 +317,8 @@ export default function ProjectCanvasPage() {
 
   const handleSaveProjectName = () => {
     if (projectName.trim() && currentProject) {
-      updateProject(currentProject.id, { name: projectName.trim() });
+      const projectId = currentProject._id || currentProject.id;
+      updateProject(projectId, { name: projectName.trim() });
       setIsEditingProjectName(false);
     }
   };
@@ -258,26 +330,54 @@ export default function ProjectCanvasPage() {
 
   const handleSaveProjectDescription = () => {
     if (currentProject) {
-      updateProject(currentProject.id, {
+      const projectId = currentProject._id || currentProject.id;
+      updateProject(projectId, {
         description: projectDescription.trim(),
       });
       setIsEditingDescription(false);
     }
-  };
+  }
 
   const handleCancelEditProjectDescription = () => {
     setProjectDescription(currentProject?.description || "");
     setIsEditingDescription(false);
   };
 
-  const handleDeleteProject = () => {
-    if (
-      confirm(
-        "¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer."
-      )
-    ) {
-      deleteProject(currentProject.id);
-      router.push("/");
+  const handleDeleteProject = async () => {
+    if (!confirm("¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId || projectId === 'undefined') {
+      console.error('❌ ID inválido para eliminar:', projectId);
+      alert('Error: No se pudo identificar el proyecto');
+      return;
+    }
+
+    console.log('🗑️ Eliminando proyecto:', projectId);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        console.log('✅ Proyecto eliminado correctamente');
+        deleteProject(projectId); // Actualizar contexto
+        router.push("/");
+      } else {
+        const data = await res.json();
+        alert('Error al eliminar: ' + (data.message || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando proyecto:', error);
+      alert('Error de conexión al eliminar el proyecto');
     }
   };
 
@@ -344,7 +444,67 @@ export default function ProjectCanvasPage() {
           >
             <HomeIcon />
           </IconButton>
+
+          {/* Botones de privacidad y colaboradores */}
+          <IconButton
+            onClick={() => setOpenPrivacySettings(true)}
+            title="Configuración de privacidad"
+            size="small"
+            sx={{ 
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <LockIcon fontSize="small" />
+          </IconButton>
+          
+          <IconButton
+            onClick={() => setOpenCollaborators(true)}
+            title="Gestionar colaboradores"
+            size="small"
+            sx={{ 
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <GroupIcon fontSize="small" />
+          </IconButton>
+
           <Box sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: "auto" } }} />
+
+          <IconButton
+            onClick={() => setOpenProjectGroups(true)}
+            title="Grupos del proyecto"
+            size="small"
+            sx={{
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <GroupIcon fontSize="small" />
+          </IconButton>
+
+          <IconButton
+            onClick={() => setOpenPermissionsMatrix(true)}
+            title="Matriz de permisos"
+            size="small"
+            sx={{
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#e0e0e0' }
+            }}
+          >
+            <SecurityIcon fontSize="small" />
+          </IconButton>
+          
+          {/* NUEVO: Badge de privacidad */}
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <ProjectPrivacyBadge
+              key={`badge-${currentProject?.visibility}-${currentProject?._id}`}
+              visibility={currentProject?.visibility || 'private'}
+              size="small"
+            />
+          </Box>
+
           <Typography
             variant="body1"
             sx={{
@@ -368,15 +528,19 @@ export default function ProjectCanvasPage() {
           >
             Exportar como
           </Button>
-          <Avatar
-            sx={{
-              bgcolor: "#5e35b1",
-              width: { xs: 32, sm: 40 },
-              height: { xs: 32, sm: 40 },
-            }}
-          >
-            J
-          </Avatar>
+          <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
+            <Avatar
+              key={user?._id || user?.email || 'no-user'}
+              sx={{
+                bgcolor: "#5e35b1",
+                width: { xs: 32, sm: 40 },
+                height: { xs: 32, sm: 40 },
+              }}
+              src={user?.picture}
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </Avatar>
+          </IconButton>
         </Box>
       </Box>
 
@@ -469,7 +633,14 @@ export default function ProjectCanvasPage() {
                   onClick={() => setOpenTaskManager(true)}
                   title="Gestionar tareas"
                 >
-                  <AddIcon fontSize="small" />
+                  <TaskIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => setOpenTagManager(true)}
+                  title="Gestionar etiquetas"
+                >
+                  <SellIcon fontSize="small" />
                 </IconButton>
               </Box>
 
@@ -850,7 +1021,7 @@ export default function ProjectCanvasPage() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Tareas del Proyecto</DialogTitle>
+        {/* <DialogTitle>Tareas del Proyecto</DialogTitle> */}
         <DialogContent>
           <TaskManager projectId={currentProject?.id} />
         </DialogContent>
@@ -858,6 +1029,62 @@ export default function ProjectCanvasPage() {
           <Button onClick={() => setOpenTaskManager(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modales de privacidad y colaboradores */}
+      <ProjectPrivacySettings
+        open={openPrivacySettings}
+        onClose={() => {
+          setOpenPrivacySettings(false);
+        }}
+        project={currentProject}
+        onUpdate={(updatedProject) => {
+          console.log("🔄 Visibilidad cambiada a:", updatedProject.visibility);
+
+          const projectId = currentProject._id || currentProject.id;
+
+          setCurrentProject({
+            ...currentProject,
+            visibility: updatedProject.visibility
+          });
+          updateProject(projectId, { visibility: updatedProject.visibility });
+        }}
+      />
+
+      <ProjectCollaborators
+        open={openCollaborators}
+        onClose={() => setOpenCollaborators(false)}
+        project={currentProject}
+      />
+      {/* Modal: Gestor de Grupos */}
+      <GroupManager
+        open={openGroupManager}
+        onClose={() => setOpenGroupManager(false)}
+      />
+
+      {/* Modal: Grupos del Proyecto */}
+      <ProjectGroupPermissions
+        open={openProjectGroups}
+        onClose={() => setOpenProjectGroups(false)}
+        project={currentProject}
+      />
+
+      {/* Modal: Matriz de Permisos */}
+      <Dialog
+        open={openPermissionsMatrix}
+        onClose={() => setOpenPermissionsMatrix(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogContent>
+          <PermissionsMatrix />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPermissionsMatrix(false)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
+  
 }
