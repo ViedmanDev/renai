@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Collapse,
+  Tooltip,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -48,7 +50,14 @@ import SecurityIcon from "@mui/icons-material/Security";
 import GroupManager from "@/components/GroupManager";
 import ProjectGroupPermissions from "@/components/ProjectGroupPermissions";
 import PermissionsMatrix from "@/components/PermissionsMatrix";
-import HierarchyWizard from "@/components/HierarchyWizard";
+import CreateElementModal from "@/components/CreateElementModal";
+import CreateSubElementModal from "@/components/CreateSubElementModal";
+import CreateDetailModal from "@/components/CreateDetailModal";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -77,16 +86,32 @@ export default function ProjectCanvasPage() {
   const [openTaskManager, setOpenTaskManager] = useState(false);
   const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
-  const [openHierarchyWizard, setOpenHierarchyWizard] = useState(false);
-  const [hierarchyElements, setHierarchyElements] = useState([]);
-  const handleSaveHierarchy = (hierarchy) => {
-    setHierarchyElements((prev) => [...prev, hierarchy]);
-    setOpenHierarchyWizard(false);
-  };
 
   const [openGroupManager, setOpenGroupManager] = useState(false);
   const [openProjectGroups, setOpenProjectGroups] = useState(false);
   const [openPermissionsMatrix, setOpenPermissionsMatrix] = useState(false);
+  const [elements, setElements] = useState([]);
+  const [expandedElements, setExpandedElements] = useState({});
+  const [expandedSubElements, setExpandedSubElements] = useState({});
+
+  const [openCreateElement, setOpenCreateElement] = useState(false);
+  const [openCreateSubElement, setOpenCreateSubElement] = useState(false);
+  const [openCreateDetail, setOpenCreateDetail] = useState(false);
+  const [selectedElementIndex, setSelectedElementIndex] = useState(null);
+  const [selectedSubElementIndex, setSelectedSubElementIndex] = useState(null);
+
+  const [openEditElement, setOpenEditElement] = useState(false);
+  const [elementToEditIndex, setElementToEditIndex] = useState(null);
+  const [editElementName, setEditElementName] = useState("");
+  const [editElementDescription, setEditElementDescription] = useState("");
+
+  const [openEditSubElement, setOpenEditSubElement] = useState(false);
+  const [editSubElemIndices, setEditSubElemIndices] = useState({
+    elem: null,
+    sub: null,
+  });
+  const [editSubElemName, setEditSubElemName] = useState("");
+  const [editSubElemDescription, setEditSubElemDescription] = useState("");
 
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
@@ -130,6 +155,10 @@ export default function ProjectCanvasPage() {
       loadProject();
     }
   }, [params.id, API_URL]);
+  if (elementToEditIndex !== null) {
+    const element = elements[elementToEditIndex];
+    // ...
+  }
 
   //Debug logs
   useEffect(() => {
@@ -145,11 +174,117 @@ export default function ProjectCanvasPage() {
     if (currentProject) {
       setProjectName(currentProject.name);
       setProjectDescription(currentProject.description || "");
+      setElements(currentProject.elements || []);
     }
   }, [currentProject]);
 
+  const toggleElement = (index) => {
+    setExpandedElements((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const toggleSubElement = (elementIndex, subIndex) => {
+    const key = `${elementIndex}-${subIndex}`;
+    setExpandedSubElements((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleCreateElement = (element) => {
+    const newElements = [
+      ...elements,
+      { ...element, id: Date.now(), subElements: [] },
+    ];
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  const handleCreateSubElement = (subElement) => {
+    const newElements = [...elements];
+    if (!newElements[selectedElementIndex].subElements) {
+      newElements[selectedElementIndex].subElements = [];
+    }
+    newElements[selectedElementIndex].subElements.push({
+      ...subElement,
+      id: Date.now(),
+      details: [],
+    });
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  const handleCreateDetail = (detail) => {
+    const newElements = [...elements];
+    if (
+      !newElements[selectedElementIndex].subElements[selectedSubElementIndex]
+        .details
+    ) {
+      newElements[selectedElementIndex].subElements[
+        selectedSubElementIndex
+      ].details = [];
+    }
+    newElements[selectedElementIndex].subElements[
+      selectedSubElementIndex
+    ].details.push({
+      ...detail,
+      id: Date.now(),
+    });
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  //editar los elementos
+  const handleSaveElementEdit = () => {
+    if (elementToEditIndex === null || !currentProject) return;
+
+    const projectId = currentProject._id || currentProject.id;
+    const newElements = [...elements];
+
+    newElements[elementToEditIndex] = {
+      ...newElements[elementToEditIndex],
+      name: editElementName.trim(),
+      description: editElementDescription.trim(),
+    };
+
+    setElements(newElements);
+    updateProject(projectId, { elements: newElements });
+
+    setOpenEditElement(false);
+    setElementToEditIndex(null);
+  };
+
+  // editar sub elementos
+  const handleSaveSubElementEdit = () => {
+    if (!editSubElemIndices || !currentProject) return;
+    const projectId = currentProject._id || currentProject.id;
+    const { elem, sub } = editSubElemIndices;
+
+    const newElements = [...elements];
+    newElements[elem].subElements[sub] = {
+      ...newElements[elem].subElements[sub],
+      name: editSubElemName.trim(),
+      description: editSubElemDescription.trim(),
+    };
+
+    setElements(newElements);
+    updateProject(projectId, { elements: newElements });
+    setOpenEditSubElement(false);
+    setEditSubElemIndices({ elem: null, sub: null });
+  };
+
   const handleDetailClick = (detail) => {
     setSelectedDetail(detail);
+    setOpenConfigModal(true);
+    const existingConfig = configuredDetails.find((d) => d.id === detail.id);
+    const mergedDetail = {
+      ...detail,
+      ...(existingConfig || {}),
+    };
+
+    setSelectedDetail(mergedDetail);
     setOpenConfigModal(true);
   };
 
@@ -362,33 +497,6 @@ export default function ProjectCanvasPage() {
       return;
     }
 
-    const handleSaveHierarchy = (hierarchy) => {
-      setHierarchyElements([...hierarchyElements, hierarchy]);
-      setOpenHierarchyWizard(false);
-    };
-
-    const toggleObjective = (index) => {
-      setExpandedObjectives((prev) => ({
-        ...prev,
-        [index]: !prev[index],
-      }));
-    };
-
-    const toggleProduct = (objectiveIndex) => {
-      setExpandedProducts((prev) => ({
-        ...prev,
-        [objectiveIndex]: !prev[objectiveIndex],
-      }));
-    };
-
-    const toggleActivity = (objectiveIndex, activityIndex) => {
-      const key = `${objectiveIndex}-${activityIndex}`;
-      setExpandedActivities((prev) => ({
-        ...prev,
-        [key]: !prev[key],
-      }));
-    };
-
     const projectId = currentProject?._id || currentProject?.id;
 
     if (!projectId || projectId === "undefined") {
@@ -438,6 +546,24 @@ export default function ProjectCanvasPage() {
   };
 
   const filteredDetails = getFilteredDetails();
+
+  const formatDetailValue = (detail) => {
+    if (!detail.value) return "Sin valor";
+
+    switch (detail.dataType) {
+      case "currency":
+      case "number":
+        const symbol = detail.currencyType || "";
+        // Using toLocaleString for better number formatting with commas
+        return `${symbol} ${Number(detail.value).toLocaleString("es-ES")}`;
+      case "date":
+        return new Date(detail.value).toLocaleDateString("es-ES");
+      case "boolean":
+        return detail.value === "true" ? "Sí" : "No";
+      default:
+        return detail.value;
+    }
+  };
 
   return (
     <Box
@@ -684,7 +810,6 @@ export default function ProjectCanvasPage() {
                   <SellIcon fontSize="small" />
                 </IconButton>
               </Box>
-
               {/* Project Description */}
               <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: "center" }}>
                 {isEditingDescription ? (
@@ -742,8 +867,7 @@ export default function ProjectCanvasPage() {
                   </Box>
                 )}
               </Box>
-
-              {/* Action Buttons */}
+              {/*Action Buttons*/}
               <Box
                 sx={{
                   display: "flex",
@@ -753,29 +877,7 @@ export default function ProjectCanvasPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenHierarchyWizard(true)}
-                  sx={{
-                    bgcolor: "#7c4dff",
-                    textTransform: "none",
-                    "&:hover": {
-                      bgcolor: "#6a3de8",
-                    },
-                  }}
-                >
-                  Crear Objetivo Específico
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => router.push(`/project/${params.id}/details`)}
-                  sx={{
-                    textTransform: "none",
-                    px: { xs: 1.5, sm: 2 },
-                  }}
-                ></Button>
-                <Button
+                {/* <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
                   onClick={() => router.push(`/project/${params.id}/details`)}
@@ -786,8 +888,8 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Agregar detalles
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
                   onClick={() => {
@@ -803,186 +905,392 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Editar detalles
+                </Button> */}
+              </Box>
+              {/* Action Button */}
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenCreateElement(true)}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    px: { xs: 1.5, sm: 2 },
+                  }}
+                >
+                  Crear Elemento
                 </Button>
               </Box>
-
-              {/* Hierarchy Elements */}
-              {hierarchyElements.length > 0 && (
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>
-                    Elementos del Proyecto
-                  </Typography>
-                  {hierarchyElements.map((element, index) => (
+              {/* Elements Hierarchy */}
+              {elements.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {elements.map((element, elemIndex) => (
                     <Box
-                      key={index}
+                      key={element.id || elemIndex}
                       sx={{
-                        mb: 3,
-                        p: 3,
                         bgcolor: "#f9fafb",
                         borderRadius: 2,
-                        border: "1px solid #e5e7eb",
+                        border: "2px solid #e5e7eb",
+                        overflow: "hidden",
                       }}
                     >
-                      {/* Objetivo Específico */}
-                      <Box sx={{ mb: 2 }}>
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight="bold"
-                          sx={{ mb: 1 }}
-                        >
-                          Objetivo Específico
-                        </Typography>
-                        <Typography variant="body1">
-                          {element.objetivoEspecifico.nombre}
-                        </Typography>
-                        {element.objetivoEspecifico.flags.length > 0 && (
-                          <Box
+                      {/* Element Header */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          p: 2,
+                          bgcolor: "#e0e7ff",
+                          cursor: "pointer",
+                          "&:hover": { bgcolor: "#c7d2fe" },
+                        }}
+                        onClick={() => toggleElement(elemIndex)}
+                      >
+                        <IconButton size="small" sx={{ mr: 1 }}>
+                          {expandedElements[elemIndex] ? (
+                            <ExpandMoreIcon />
+                          ) : (
+                            <ChevronRightIcon />
+                          )}
+                        </IconButton>
+                        <AccountTreeIcon sx={{ mr: 1, color: "#6366f1" }} />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {element.name}
+                          </Typography>
+                          {element.description && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {element.description}
+                            </Typography>
+                          )}
+                        </Box>
+                        {/* botón editar elemento */}
+                        <Tooltip title="Editar elemento">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation(); // para que no colapse/expanda al hacer click
+                              setElementToEditIndex(elemIndex);
+                              setEditElementName(element.name || "");
+                              setEditElementDescription(
+                                element.description || ""
+                              );
+                              setOpenEditElement(true);
+                            }}
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Crear sub-elemento">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedElementIndex(elemIndex);
+                              setOpenCreateSubElement(true);
+                            }}
                             sx={{
-                              display: "flex",
-                              gap: 1,
-                              mt: 1,
-                              flexWrap: "wrap",
+                              bgcolor: "white",
+                              "&:hover": { bgcolor: "#f3f4f6" },
                             }}
                           >
-                            {element.objetivoEspecifico.flags.map((flag) => (
-                              <Chip
-                                key={flag.id}
-                                label={flag.name}
-                                size="small"
-                                icon={<FlagIcon />}
-                                sx={{ bgcolor: flag.color, color: "white" }}
-                              />
-                            ))}
-                          </Box>
-                        )}
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
 
-                      {/* Producto */}
-                      {element.producto && (
-                        <Box sx={{ mb: 2, pl: 3 }}>
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight="bold"
-                            sx={{ mb: 1 }}
-                          >
-                            → Producto
-                          </Typography>
-                          <Typography variant="body2">
-                            {element.producto.nombre}
-                          </Typography>
-                          {element.producto.flags.length > 0 && (
+                      {/* Element Content */}
+                      <Collapse
+                        in={expandedElements[elemIndex]}
+                        timeout="auto"
+                        unmountOnExit
+                      >
+                        <Box sx={{ p: 3 }}>
+                          {element.subElements &&
+                          element.subElements.length > 0 ? (
                             <Box
                               sx={{
                                 display: "flex",
-                                gap: 1,
-                                mt: 1,
-                                flexWrap: "wrap",
+                                flexDirection: "column",
+                                gap: 2,
                               }}
                             >
-                              {element.producto.flags.map((flag) => (
-                                <Chip
-                                  key={flag.id}
-                                  label={flag.name}
-                                  size="small"
-                                  icon={<FlagIcon />}
-                                  sx={{ bgcolor: flag.color, color: "white" }}
-                                />
-                              ))}
-                            </Box>
-                          )}
-                        </Box>
-                      )}
-
-                      {/* Actividades */}
-                      {element.actividades.length > 0 && (
-                        <Box sx={{ pl: element.producto ? 6 : 3 }}>
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight="bold"
-                            sx={{ mb: 1 }}
-                          >
-                            Actividades
-                          </Typography>
-                          {element.actividades.map((actividad, actIndex) => (
-                            <Box key={actIndex} sx={{ mb: 2 }}>
-                              <Typography variant="body2">
-                                → {actividad.nombre}
-                              </Typography>
-                              {actividad.flags.length > 0 && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    gap: 1,
-                                    mt: 1,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  {actividad.flags.map((flag) => (
-                                    <Chip
-                                      key={flag.id}
-                                      label={flag.name}
-                                      size="small"
-                                      icon={<FlagIcon />}
+                              {element.subElements.map((subElem, subIndex) => {
+                                const subKey = `${elemIndex}-${subIndex}`;
+                                return (
+                                  <Box
+                                    key={subElem.id || subIndex}
+                                    sx={{
+                                      bgcolor: "#fef3c7",
+                                      borderRadius: 1,
+                                      border: "1px solid #fcd34d",
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Sub-Element Header */}
+                                    <Box
                                       sx={{
-                                        bgcolor: flag.color,
-                                        color: "white",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        p: 1.5,
+                                        cursor: "pointer",
+                                        "&:hover": { bgcolor: "#fde68a" },
                                       }}
-                                    />
-                                  ))}
-                                </Box>
-                              )}
-
-                              {/* Sub-actividades */}
-                              {actividad.subactividades.length > 0 && (
-                                <Box sx={{ pl: 3, mt: 1 }}>
-                                  {actividad.subactividades.map(
-                                    (sub, subIndex) => (
-                                      <Box key={subIndex} sx={{ mb: 1 }}>
+                                      onClick={() =>
+                                        toggleSubElement(elemIndex, subIndex)
+                                      }
+                                    >
+                                      <IconButton size="small" sx={{ mr: 1 }}>
+                                        {expandedSubElements[subKey] ? (
+                                          <ExpandMoreIcon />
+                                        ) : (
+                                          <ChevronRightIcon />
+                                        )}
+                                      </IconButton>
+                                      <AssignmentIcon
+                                        sx={{ mr: 1, color: "#f59e0b" }}
+                                      />
+                                      <Box sx={{ flexGrow: 1 }}>
                                         <Typography
-                                          variant="body2"
-                                          fontSize="0.85rem"
+                                          variant="body1"
+                                          fontWeight="500"
                                         >
-                                          ⤷ {sub.nombre}
+                                          {subElem.name}
                                         </Typography>
-                                        {sub.flags.length > 0 && (
+                                        {subElem.description && (
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
+                                            {subElem.description}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                      {/* 🔹 BOTÓN EDITAR SUB-ELEMENTO AQUÍ */}
+                                      <Tooltip title="Editar sub-elemento">
+                                        <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditSubElemIndices({
+                                              elem: elemIndex,
+                                              sub: subIndex,
+                                            });
+                                            setEditSubElemName(
+                                              subElem.name || ""
+                                            );
+                                            setEditSubElemDescription(
+                                              subElem.description || ""
+                                            );
+                                            setOpenEditSubElement(true);
+                                          }}
+                                          sx={{ mr: 1 }}
+                                        >
+                                          <EditIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Crear detalle">
+                                        <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedElementIndex(elemIndex);
+                                            setSelectedSubElementIndex(
+                                              subIndex
+                                            );
+                                            setOpenCreateDetail(true);
+                                          }}
+                                          sx={{
+                                            bgcolor: "white",
+                                            "&:hover": { bgcolor: "#f3f4f6" },
+                                          }}
+                                        >
+                                          <AddIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Box>
+
+                                    {/* Sub-Element Content (Details) */}
+                                    <Collapse
+                                      in={expandedSubElements[subKey]}
+                                      timeout="auto"
+                                      unmountOnExit
+                                    >
+                                      <Box sx={{ p: 2, bgcolor: "#fffbeb" }}>
+                                        {subElem.details &&
+                                        subElem.details.length > 0 ? (
                                           <Box
                                             sx={{
                                               display: "flex",
-                                              gap: 0.5,
-                                              mt: 0.5,
-                                              flexWrap: "wrap",
+                                              flexDirection: "column",
+                                              gap: 1.5,
                                             }}
                                           >
-                                            {sub.flags.map((flag) => (
-                                              <Chip
-                                                key={flag.id}
-                                                label={flag.name}
-                                                size="small"
-                                                icon={<FlagIcon />}
-                                                sx={{
-                                                  bgcolor: flag.color,
-                                                  color: "white",
-                                                  height: 20,
-                                                  fontSize: "0.65rem",
-                                                }}
-                                              />
-                                            ))}
+                                            {subElem.details.map(
+                                              (detail, detailIndex) => (
+                                                <Box
+                                                  key={detail.id || detailIndex}
+                                                  sx={{
+                                                    p: 2,
+                                                    bgcolor: "white",
+                                                    borderRadius: 1,
+                                                    borderLeft:
+                                                      "3px solid #f59e0b",
+                                                    cursor: "pointer",
+                                                    "&:hover": {
+                                                      bgcolor: "#f9fafb",
+                                                    },
+                                                  }}
+                                                  onClick={() =>
+                                                    handleDetailClick(detail)
+                                                  }
+                                                >
+                                                  <Box
+                                                    sx={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      gap: 2,
+                                                      mb: 1,
+                                                    }}
+                                                  >
+                                                    <DescriptionIcon
+                                                      fontSize="small"
+                                                      sx={{ color: "#6b7280" }}
+                                                    />
+                                                    <Typography
+                                                      variant="body2"
+                                                      fontWeight="500"
+                                                    >
+                                                      {detail.name}
+                                                      {detail.required && (
+                                                        <Chip
+                                                          label="Requerido"
+                                                          size="small"
+                                                          color="error"
+                                                          sx={{
+                                                            ml: 1,
+                                                            height: 20,
+                                                          }}
+                                                        />
+                                                      )}
+                                                    </Typography>
+                                                  </Box>
+
+                                                  {detail.description && (
+                                                    <Typography
+                                                      variant="caption"
+                                                      color="text.secondary"
+                                                      sx={{
+                                                        display: "block",
+                                                        mb: 1,
+                                                      }}
+                                                    >
+                                                      {detail.description}
+                                                    </Typography>
+                                                  )}
+
+                                                  <Box
+                                                    sx={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      gap: 2,
+                                                      flexWrap: "wrap",
+                                                    }}
+                                                  >
+                                                    <Chip
+                                                      label={detail.dataType}
+                                                      size="small"
+                                                      sx={{ height: 22 }}
+                                                    />
+                                                    <Typography variant="body2">
+                                                      {formatDetailValue(
+                                                        detail
+                                                      )}
+                                                    </Typography>
+                                                  </Box>
+
+                                                  {detail.flags &&
+                                                    detail.flags.length > 0 && (
+                                                      <Box
+                                                        sx={{
+                                                          display: "flex",
+                                                          gap: 0.5,
+                                                          mt: 1,
+                                                          flexWrap: "wrap",
+                                                        }}
+                                                      >
+                                                        {detail.flags.map(
+                                                          (flag) => (
+                                                            <Chip
+                                                              key={flag.id}
+                                                              label={flag.name}
+                                                              size="small"
+                                                              icon={
+                                                                <FlagIcon />
+                                                              }
+                                                              sx={{
+                                                                bgcolor:
+                                                                  flag.color,
+                                                                color: "white",
+                                                                height: 20,
+                                                                fontSize:
+                                                                  "0.7rem",
+                                                              }}
+                                                            />
+                                                          )
+                                                        )}
+                                                      </Box>
+                                                    )}
+                                                </Box>
+                                              )
+                                            )}
                                           </Box>
+                                        ) : (
+                                          <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{ textAlign: "center", py: 2 }}
+                                          >
+                                            No hay detalles. Haz clic en + para
+                                            agregar.
+                                          </Typography>
                                         )}
                                       </Box>
-                                    )
-                                  )}
-                                </Box>
-                              )}
+                                    </Collapse>
+                                  </Box>
+                                );
+                              })}
                             </Box>
-                          ))}
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ textAlign: "center", py: 3 }}
+                            >
+                              No hay sub-elementos. Haz clic en + para agregar.
+                            </Typography>
+                          )}
                         </Box>
-                      )}
+                      </Collapse>
                     </Box>
                   ))}
                 </Box>
+              ) : (
+                <Box sx={{ textAlign: "center", py: 8 }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No hay elementos creados
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Haz clic en &quot;Crear Elemento&quot; para comenzar
+                  </Typography>
+                </Box>
               )}
-
               {/* Details Display */}
               {selectedDetails.length > 0 ? (
                 <Box
@@ -1290,6 +1598,36 @@ export default function ProjectCanvasPage() {
         }}
       />
 
+      {/* Modales de creación de elementos / sub-elementos / detalles */}
+      <CreateElementModal
+        open={openCreateElement}
+        onClose={() => setOpenCreateElement(false)}
+        onSave={handleCreateElement}
+      />
+
+      <CreateSubElementModal
+        open={openCreateSubElement}
+        onClose={() => setOpenCreateSubElement(false)}
+        onSave={handleCreateSubElement}
+        elementName={
+          selectedElementIndex !== null
+            ? elements[selectedElementIndex]?.name
+            : ""
+        }
+      />
+
+      <CreateDetailModal
+        open={openCreateDetail}
+        onClose={() => setOpenCreateDetail(false)}
+        onSave={handleCreateDetail}
+        subElementName={
+          selectedElementIndex !== null && selectedSubElementIndex !== null
+            ? elements[selectedElementIndex]?.subElements?.[
+                selectedSubElementIndex
+              ]?.name
+            : ""
+        }
+      />
       <ProjectCollaborators
         open={openCollaborators}
         onClose={() => setOpenCollaborators(false)}
@@ -1320,38 +1658,93 @@ export default function ProjectCanvasPage() {
           <PermissionsMatrix project={currentProject} />
         </DialogContent>
       </Dialog>
-      {/* Hierarchy Wizard Dialog */}
+      {/* Modal: Editar Elemento */}
       <Dialog
-        open={openHierarchyWizard}
-        onClose={() => setOpenHierarchyWizard(false)}
-        maxWidth="lg"
+        open={openEditElement}
+        onClose={() => setOpenEditElement(false)}
+        maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography variant="h6">Crear Elementos del Proyecto</Typography>
-            <IconButton
-              onClick={() => setOpenHierarchyWizard(false)}
-              size="small"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-
-        <DialogContent dividers>
-          <HierarchyWizard
-            open={openHierarchyWizard}
-            onClose={() => setOpenHierarchyWizard(false)}
-            onSave={handleSaveHierarchy}
+        <DialogTitle>Editar elemento</DialogTitle>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          <TextField
+            label="Nombre del elemento"
+            value={editElementName}
+            onChange={(e) => setEditElementName(e.target.value)}
+            fullWidth
+            size="small"
+          />
+          <TextField
+            label="Descripción"
+            value={editElementDescription}
+            onChange={(e) => setEditElementDescription(e.target.value)}
+            fullWidth
+            size="small"
+            multiline
+            rows={3}
           />
         </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditElement(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveElementEdit}
+            disabled={!editElementName.trim()}
+          >
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* 🔹 Modal: Editar Sub-elemento */}
+      <Dialog
+        open={openEditSubElement}
+        onClose={() => setOpenEditSubElement(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Editar sub-elemento</DialogTitle>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          <TextField
+            label="Nombre del sub-elemento"
+            value={editSubElemName}
+            onChange={(e) => setEditSubElemName(e.target.value)}
+            fullWidth
+            size="small"
+          />
+          <TextField
+            label="Descripción"
+            value={editSubElemDescription}
+            onChange={(e) => setEditSubElemDescription(e.target.value)}
+            fullWidth
+            size="small"
+            multiline
+            rows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditSubElement(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveSubElementEdit}
+            disabled={!editSubElemName.trim()}
+          >
+            Guardar
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
