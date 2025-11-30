@@ -240,7 +240,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p>
+      <p className="signup-link">
         ¿No tienes cuenta? <Link href="/auth/sign-up">Crea una aquí</Link>
       </p>
 
