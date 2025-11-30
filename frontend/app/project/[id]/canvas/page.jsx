@@ -1663,30 +1663,34 @@ export default function ProjectCanvasPage() {
         fullWidth
       >
         <DialogTitle>Editar elemento</DialogTitle>
-        <DialogContent
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            mt: 1,
-          }}
-        >
-          <TextField
-            label="Nombre del elemento"
-            value={editElementName}
-            onChange={(e) => setEditElementName(e.target.value)}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Descripción"
-            value={editElementDescription}
-            onChange={(e) => setEditElementDescription(e.target.value)}
-            fullWidth
-            size="small"
-            multiline
-            rows={3}
-          />
+        <DialogContent sx={{ pt: 3 }}>
+          {" "}
+          {/* <- espacio interno arriba */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              mt: 3,
+            }}
+          >
+            <TextField
+              label="Nombre del elemento"
+              value={editElementName}
+              onChange={(e) => setEditElementName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Descripción"
+              value={editElementDescription}
+              onChange={(e) => setEditElementDescription(e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              rows={3}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditElement(false)}>Cancelar</Button>
@@ -1707,30 +1711,34 @@ export default function ProjectCanvasPage() {
         fullWidth
       >
         <DialogTitle>Editar sub-elemento</DialogTitle>
-        <DialogContent
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            mt: 1,
-          }}
-        >
-          <TextField
-            label="Nombre del sub-elemento"
-            value={editSubElemName}
-            onChange={(e) => setEditSubElemName(e.target.value)}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Descripción"
-            value={editSubElemDescription}
-            onChange={(e) => setEditSubElemDescription(e.target.value)}
-            fullWidth
-            size="small"
-            multiline
-            rows={3}
-          />
+        <DialogContent sx={{ pt: 3 }}>
+          {" "}
+          {/* <- espacio interno arriba */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              mt: 3,
+            }}
+          >
+            <TextField
+              label="Nombre del sub-elemento"
+              value={editSubElemName}
+              onChange={(e) => setEditSubElemName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Descripción"
+              value={editSubElemDescription}
+              onChange={(e) => setEditSubElemDescription(e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              rows={3}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditSubElement(false)}>Cancelar</Button>
