@@ -48,6 +48,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import GroupManager from "@/components/GroupManager";
 import ProjectGroupPermissions from "@/components/ProjectGroupPermissions";
 import PermissionsMatrix from "@/components/PermissionsMatrix";
+import HierarchyWizard from "@/components/HierarchyWizard";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -76,11 +77,17 @@ export default function ProjectCanvasPage() {
   const [openTaskManager, setOpenTaskManager] = useState(false);
   const [openTagManager, setOpenTagManager] = useState(false);
   const [flagSearch, setFlagSearch] = useState("");
+  const [openHierarchyWizard, setOpenHierarchyWizard] = useState(false);
+  const [hierarchyElements, setHierarchyElements] = useState([]);
+  const handleSaveHierarchy = (hierarchy) => {
+    setHierarchyElements((prev) => [...prev, hierarchy]);
+    setOpenHierarchyWizard(false);
+  };
 
   const [openGroupManager, setOpenGroupManager] = useState(false);
   const [openProjectGroups, setOpenProjectGroups] = useState(false);
   const [openPermissionsMatrix, setOpenPermissionsMatrix] = useState(false);
-  
+
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
   const [openCollaborators, setOpenCollaborators] = useState(false);
@@ -89,12 +96,12 @@ export default function ProjectCanvasPage() {
     const loadProject = async () => {
       const token = localStorage.getItem("token");
       if (!token || !params.id) {
-        console.warn('⚠️ No hay token o ID de proyecto');
+        console.warn("⚠️ No hay token o ID de proyecto");
         return;
       }
 
       try {
-        console.log('📦 Intentando cargar proyecto:', params.id);
+        console.log("📦 Intentando cargar proyecto:", params.id);
         const res = await fetch(`${API_URL}/projects/${params.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -103,32 +110,35 @@ export default function ProjectCanvasPage() {
 
         if (res.ok) {
           const project = await res.json();
-          console.log('Proyecto cargado desde backend:', project);
+          console.log("Proyecto cargado desde backend:", project);
           setCurrentProject(project);
         } else {
-          console.error('❌ Error cargando proyecto, status:', res.status);
+          console.error("❌ Error cargando proyecto, status:", res.status);
           // NO redirigir, permitir que funcione con datos locales
         }
       } catch (error) {
-        console.error('❌ Error de red:', error);
+        console.error("❌ Error de red:", error);
         //NO redirigir, permitir que funcione offline
       }
     };
 
     // Solo cargar si currentProject está null o es diferente
-    if (!currentProject || (currentProject._id !== params.id && currentProject.id !== params.id)) {
+    if (
+      !currentProject ||
+      (currentProject._id !== params.id && currentProject.id !== params.id)
+    ) {
       loadProject();
     }
   }, [params.id, API_URL]);
 
   //Debug logs
   useEffect(() => {
-    console.log('🔄 currentProject cambió:', currentProject);
-    console.log('👁️ Visibilidad actual:', currentProject?.visibility);
+    console.log("🔄 currentProject cambió:", currentProject);
+    console.log("👁️ Visibilidad actual:", currentProject?.visibility);
   }, [currentProject]);
 
   useEffect(() => {
-    console.log('👤 Usuario:', user);
+    console.log("👤 Usuario:", user);
   }, [user]);
 
   useEffect(() => {
@@ -147,10 +157,10 @@ export default function ProjectCanvasPage() {
     return (
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh'
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
         }}
       >
         <CircularProgress />
@@ -336,7 +346,7 @@ export default function ProjectCanvasPage() {
       });
       setIsEditingDescription(false);
     }
-  }
+  };
 
   const handleCancelEditProjectDescription = () => {
     setProjectDescription(currentProject?.description || "");
@@ -344,40 +354,71 @@ export default function ProjectCanvasPage() {
   };
 
   const handleDeleteProject = async () => {
-    if (!confirm("¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer.")) {
+    if (
+      !confirm(
+        "¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer."
+      )
+    ) {
       return;
     }
+
+    const handleSaveHierarchy = (hierarchy) => {
+      setHierarchyElements([...hierarchyElements, hierarchy]);
+      setOpenHierarchyWizard(false);
+    };
+
+    const toggleObjective = (index) => {
+      setExpandedObjectives((prev) => ({
+        ...prev,
+        [index]: !prev[index],
+      }));
+    };
+
+    const toggleProduct = (objectiveIndex) => {
+      setExpandedProducts((prev) => ({
+        ...prev,
+        [objectiveIndex]: !prev[objectiveIndex],
+      }));
+    };
+
+    const toggleActivity = (objectiveIndex, activityIndex) => {
+      const key = `${objectiveIndex}-${activityIndex}`;
+      setExpandedActivities((prev) => ({
+        ...prev,
+        [key]: !prev[key],
+      }));
+    };
 
     const projectId = currentProject?._id || currentProject?.id;
 
-    if (!projectId || projectId === 'undefined') {
-      console.error('❌ ID inválido para eliminar:', projectId);
-      alert('Error: No se pudo identificar el proyecto');
+    if (!projectId || projectId === "undefined") {
+      console.error("❌ ID inválido para eliminar:", projectId);
+      alert("Error: No se pudo identificar el proyecto");
       return;
     }
 
-    console.log('🗑️ Eliminando proyecto:', projectId);
+    console.log("🗑️ Eliminando proyecto:", projectId);
 
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_URL}/projects/${projectId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (res.ok) {
-        console.log('✅ Proyecto eliminado correctamente');
+        console.log("✅ Proyecto eliminado correctamente");
         deleteProject(projectId); // Actualizar contexto
         router.push("/");
       } else {
         const data = await res.json();
-        alert('Error al eliminar: ' + (data.message || 'Error desconocido'));
+        alert("Error al eliminar: " + (data.message || "Error desconocido"));
       }
     } catch (error) {
-      console.error('❌ Error eliminando proyecto:', error);
-      alert('Error de conexión al eliminar el proyecto');
+      console.error("❌ Error eliminando proyecto:", error);
+      alert("Error de conexión al eliminar el proyecto");
     }
   };
 
@@ -450,21 +491,21 @@ export default function ProjectCanvasPage() {
             onClick={() => setOpenPrivacySettings(true)}
             title="Configuración de privacidad"
             size="small"
-            sx={{ 
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+            sx={{
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <LockIcon fontSize="small" />
           </IconButton>
-          
+
           <IconButton
             onClick={() => setOpenCollaborators(true)}
             title="Gestionar colaboradores"
             size="small"
-            sx={{ 
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+            sx={{
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <GroupIcon fontSize="small" />
@@ -477,8 +518,8 @@ export default function ProjectCanvasPage() {
             title="Grupos del proyecto"
             size="small"
             sx={{
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <GroupIcon fontSize="small" />
@@ -489,18 +530,18 @@ export default function ProjectCanvasPage() {
             title="Matriz de permisos"
             size="small"
             sx={{
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <SecurityIcon fontSize="small" />
           </IconButton>
-          
+
           {/* NUEVO: Badge de privacidad */}
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Box sx={{ display: { xs: "none", sm: "block" } }}>
             <ProjectPrivacyBadge
               key={`badge-${currentProject?.visibility}-${currentProject?._id}`}
-              visibility={currentProject?.visibility || 'private'}
+              visibility={currentProject?.visibility || "private"}
               size="small"
             />
           </Box>
@@ -530,7 +571,7 @@ export default function ProjectCanvasPage() {
           </Button>
           <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
             <Avatar
-              key={user?._id || user?.email || 'no-user'}
+              key={user?._id || user?.email || "no-user"}
               sx={{
                 bgcolor: "#5e35b1",
                 width: { xs: 32, sm: 40 },
@@ -713,6 +754,28 @@ export default function ProjectCanvasPage() {
                 }}
               >
                 <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenHierarchyWizard(true)}
+                  sx={{
+                    bgcolor: "#7c4dff",
+                    textTransform: "none",
+                    "&:hover": {
+                      bgcolor: "#6a3de8",
+                    },
+                  }}
+                >
+                  Crear Objetivo Específico
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push(`/project/${params.id}/details`)}
+                  sx={{
+                    textTransform: "none",
+                    px: { xs: 1.5, sm: 2 },
+                  }}
+                ></Button>
+                <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
                   onClick={() => router.push(`/project/${params.id}/details`)}
@@ -742,6 +805,183 @@ export default function ProjectCanvasPage() {
                   Editar detalles
                 </Button>
               </Box>
+
+              {/* Hierarchy Elements */}
+              {hierarchyElements.length > 0 && (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Elementos del Proyecto
+                  </Typography>
+                  {hierarchyElements.map((element, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        mb: 3,
+                        p: 3,
+                        bgcolor: "#f9fafb",
+                        borderRadius: 2,
+                        border: "1px solid #e5e7eb",
+                      }}
+                    >
+                      {/* Objetivo Específico */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight="bold"
+                          sx={{ mb: 1 }}
+                        >
+                          Objetivo Específico
+                        </Typography>
+                        <Typography variant="body1">
+                          {element.objetivoEspecifico.nombre}
+                        </Typography>
+                        {element.objetivoEspecifico.flags.length > 0 && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              mt: 1,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {element.objetivoEspecifico.flags.map((flag) => (
+                              <Chip
+                                key={flag.id}
+                                label={flag.name}
+                                size="small"
+                                icon={<FlagIcon />}
+                                sx={{ bgcolor: flag.color, color: "white" }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+
+                      {/* Producto */}
+                      {element.producto && (
+                        <Box sx={{ mb: 2, pl: 3 }}>
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight="bold"
+                            sx={{ mb: 1 }}
+                          >
+                            → Producto
+                          </Typography>
+                          <Typography variant="body2">
+                            {element.producto.nombre}
+                          </Typography>
+                          {element.producto.flags.length > 0 && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 1,
+                                mt: 1,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              {element.producto.flags.map((flag) => (
+                                <Chip
+                                  key={flag.id}
+                                  label={flag.name}
+                                  size="small"
+                                  icon={<FlagIcon />}
+                                  sx={{ bgcolor: flag.color, color: "white" }}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Actividades */}
+                      {element.actividades.length > 0 && (
+                        <Box sx={{ pl: element.producto ? 6 : 3 }}>
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight="bold"
+                            sx={{ mb: 1 }}
+                          >
+                            Actividades
+                          </Typography>
+                          {element.actividades.map((actividad, actIndex) => (
+                            <Box key={actIndex} sx={{ mb: 2 }}>
+                              <Typography variant="body2">
+                                → {actividad.nombre}
+                              </Typography>
+                              {actividad.flags.length > 0 && (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    mt: 1,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {actividad.flags.map((flag) => (
+                                    <Chip
+                                      key={flag.id}
+                                      label={flag.name}
+                                      size="small"
+                                      icon={<FlagIcon />}
+                                      sx={{
+                                        bgcolor: flag.color,
+                                        color: "white",
+                                      }}
+                                    />
+                                  ))}
+                                </Box>
+                              )}
+
+                              {/* Sub-actividades */}
+                              {actividad.subactividades.length > 0 && (
+                                <Box sx={{ pl: 3, mt: 1 }}>
+                                  {actividad.subactividades.map(
+                                    (sub, subIndex) => (
+                                      <Box key={subIndex} sx={{ mb: 1 }}>
+                                        <Typography
+                                          variant="body2"
+                                          fontSize="0.85rem"
+                                        >
+                                          ⤷ {sub.nombre}
+                                        </Typography>
+                                        {sub.flags.length > 0 && (
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              gap: 0.5,
+                                              mt: 0.5,
+                                              flexWrap: "wrap",
+                                            }}
+                                          >
+                                            {sub.flags.map((flag) => (
+                                              <Chip
+                                                key={flag.id}
+                                                label={flag.name}
+                                                size="small"
+                                                icon={<FlagIcon />}
+                                                sx={{
+                                                  bgcolor: flag.color,
+                                                  color: "white",
+                                                  height: 20,
+                                                  fontSize: "0.65rem",
+                                                }}
+                                              />
+                                            ))}
+                                          </Box>
+                                        )}
+                                      </Box>
+                                    )
+                                  )}
+                                </Box>
+                              )}
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              )}
 
               {/* Details Display */}
               {selectedDetails.length > 0 ? (
@@ -1044,7 +1284,7 @@ export default function ProjectCanvasPage() {
 
           setCurrentProject({
             ...currentProject,
-            visibility: updatedProject.visibility
+            visibility: updatedProject.visibility,
           });
           updateProject(projectId, { visibility: updatedProject.visibility });
         }}
@@ -1075,16 +1315,44 @@ export default function ProjectCanvasPage() {
         maxWidth="lg"
         fullWidth
       >
+        <DialogTitle>Matriz de permisos</DialogTitle>
         <DialogContent>
-          <PermissionsMatrix />
+          <PermissionsMatrix project={currentProject} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenPermissionsMatrix(false)}>
-            Cerrar
-          </Button>
-        </DialogActions>
+      </Dialog>
+      {/* Hierarchy Wizard Dialog */}
+      <Dialog
+        open={openHierarchyWizard}
+        onClose={() => setOpenHierarchyWizard(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Typography variant="h6">Crear Elementos del Proyecto</Typography>
+            <IconButton
+              onClick={() => setOpenHierarchyWizard(false)}
+              size="small"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <HierarchyWizard
+            open={openHierarchyWizard}
+            onClose={() => setOpenHierarchyWizard(false)}
+            onSave={handleSaveHierarchy}
+          />
+        </DialogContent>
       </Dialog>
     </Box>
   );
-  
 }
