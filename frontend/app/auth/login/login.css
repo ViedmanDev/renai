@@ -23,7 +23,8 @@
 
 */
 .login-container {
-  width: min(96vw, 410px);
+  height: 710px;
+  width: 510px;
   margin: 0 auto;
   background-color: #fff;
   border-radius: 0.5rem;
@@ -151,6 +152,7 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
 .title-login {
   text-align: center;
   padding: 2rem;
