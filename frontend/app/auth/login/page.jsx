@@ -258,7 +258,7 @@ export default function LoginPage() {
         >
           <img src="/google-icon.png" alt="" className="social-icon" />
           Continue con Google
-        </button>
+          </button>
       </div>
     </div>
   );
