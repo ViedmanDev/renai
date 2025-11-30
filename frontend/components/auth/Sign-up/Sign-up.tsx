@@ -278,31 +278,6 @@ export default function RegisterPage() {
                 </button>
             </form>
 
-            <p>
-                ¿Ya tienes cuenta? <Link href="/auth/login">Inicia sesión aquí</Link>
-            </p>
-
-            <p className="separator">
-                <span>or</span>
-            </p>
-
-            <div className="social-login">
-                <button
-                    className="social-button"
-                    onClick={() => {
-                        window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/auth/google`;
-                    }}
-                    type="button"
-                >
-                    <img src="/google-icon.png" alt="" className="social-icon" />
-                    Continue con Google
-                </button>
-                <br />
-                <button className="social-button social-apple">
-                    <img src="/logo-apple.png" alt="" className="social-icon" />
-                    Continue con Apple
-                </button>
-            </div>
         </div>
     );
 }
