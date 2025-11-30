@@ -289,9 +289,11 @@ export default function RegisterPage() {
                 <button
                     className="login-button"
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !formData.aceptaTerminos}
                     style={{
-                        marginTop: "16px"
+                        marginTop: "16px",
+                        opacity: (loading || !formData.aceptaTerminos) ? 0.7 : 1,
+                        cursor: (loading || !formData.aceptaTerminos) ? "not-allowed" : "pointer"
                     }}
                 >
                     {loading ? "Creando cuenta..." : "Registrarse"}
