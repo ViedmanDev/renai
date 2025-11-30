@@ -4,23 +4,9 @@ import { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "@/app/auth/login/login.css";
-
-interface FormData {
-    name: string;
-    email: string;
-    password: string;
-    confirmPassword: string;
-    aceptaTerminos: boolean;
-}
-
-interface FormErrors {
-    nombre?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-    aceptaTerminos?: string;
-    general?: string;
-}
+import { FormData, FormErrors } from "@/types/auth/Sign-Up";
+import { validateNombre, validateEmail, validatePassword, validateConfirmPassword } from "@/utils/validator";
+import { handleNombreChange, handleEmailChange, handlePasswordChange, handleConfirmPasswordChange, handleTerminosChange } from "@/utils/handlers";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -38,128 +24,6 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
-    // Validaciones
-    const validateNombre = (value: string): string => {
-        if (!value.trim()) {
-            return "El nombre es requerido";
-        }
-        if (value.trim().length < 2) {
-            return "El nombre debe tener al menos 2 caracteres";
-        }
-        return "";
-    };
-
-    const validateEmail = (value: string): string => {
-        if (!value) {
-            return "El email es requerido";
-        }
-        if (!value.includes("@")) {
-            return "El email debe contener @";
-        }
-        if (!value.includes(".")) {
-            return "El email debe tener un dominio válido";
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-            return "El formato del email no es válido";
-        }
-        return "";
-    };
-
-    const validatePassword = (value: string): string => {
-        if (!value) {
-            return "La contraseña es requerida";
-        }
-        if (value.length < 6) {
-            return "La contraseña debe tener al menos 6 caracteres";
-        }
-        return "";
-    };
-
-    const validateConfirmPassword = (value: string, password: string): string => {
-        if (!value) {
-            return "Confirma tu contraseña";
-        }
-        if (value !== password) {
-            return "Las contraseñas no coinciden";
-        }
-        return "";
-    };
-
-    // Manejadores de cambio
-    const handleNombreChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setFormData(prev => ({ ...prev, name: value }));
-
-        if (errors.nombre || value) {
-            setErrors(prev => ({
-                ...prev,
-                nombre: validateNombre(value),
-                general: ""
-            }));
-        }
-    };
-
-    const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setFormData(prev => ({ ...prev, email: value }));
-
-        if (errors.email || value) {
-            setErrors(prev => ({
-                ...prev,
-                email: validateEmail(value),
-                general: ""
-            }));
-        }
-    };
-
-    const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setFormData(prev => ({ ...prev, password: value }));
-
-        if (errors.password || value) {
-            setErrors(prev => ({
-                ...prev,
-                password: validatePassword(value),
-                general: ""
-            }));
-        }
-
-
-        if (formData.confirmPassword) {
-            setErrors(prev => ({
-                ...prev,
-                confirmPassword: validateConfirmPassword(formData.confirmPassword, value)
-            }));
-        }
-    };
-
-    const handleConfirmPasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setFormData(prev => ({ ...prev, confirmPassword: value }));
-
-        if (errors.confirmPassword || value) {
-            setErrors(prev => ({
-                ...prev,
-                confirmPassword: validateConfirmPassword(value, formData.password),
-                general: ""
-            }));
-        }
-    };
-
-    const handleTerminosChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const checked = e.target.checked;
-        setFormData(prev => ({ ...prev, aceptaTerminos: checked }));
-
-        if (errors.aceptaTerminos) {
-            setErrors(prev => ({
-                ...prev,
-                aceptaTerminos: checked ? "" : "Debes aceptar los términos y condiciones"
-            }));
-        }
-    };
-
-    // Validar todo el formulario
     const validateForm = (): boolean => {
         const nombreError = validateNombre(formData.name);
         const emailError = validateEmail(formData.email);
@@ -182,7 +46,6 @@ export default function RegisterPage() {
     const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // Validar formulario antes de enviar
         if (!validateForm()) {
             return;
         }
@@ -263,7 +126,7 @@ export default function RegisterPage() {
                         placeholder="Ingresa tu nombre"
                         className={`input-field ${errors.nombre ? "input-error" : ""}`}
                         value={formData.name}
-                        onChange={handleNombreChange}
+                        onChange={e => handleNombreChange(e, { formData, setFormData, errors, setErrors })}
                         disabled={loading}
                         style={{
                             borderColor: errors.nombre ? "#f44336" : undefined
@@ -290,7 +153,7 @@ export default function RegisterPage() {
                         placeholder="Ingresa tu email"
                         className={`input-field ${errors.email ? "input-error" : ""}`}
                         value={formData.email}
-                        onChange={handleEmailChange}
+                        onChange={e => handleEmailChange(e, { formData, setFormData, errors, setErrors })}
                         disabled={loading}
                         style={{
                             borderColor: errors.email ? "#f44336" : undefined
@@ -317,7 +180,7 @@ export default function RegisterPage() {
                         placeholder="Ingresa tu contraseña"
                         className={`input-field ${errors.password ? "input-error" : ""}`}
                         value={formData.password}
-                        onChange={handlePasswordChange}
+                        onChange={e => handlePasswordChange(e, { formData, setFormData, errors, setErrors })}
                         disabled={loading}
                         style={{
                             borderColor: errors.password ? "#f44336" : undefined
@@ -350,7 +213,7 @@ export default function RegisterPage() {
                         placeholder="Confirma tu contraseña"
                         className={`input-field ${errors.confirmPassword ? "input-error" : ""}`}
                         value={formData.confirmPassword}
-                        onChange={handleConfirmPasswordChange}
+                        onChange={e => handleConfirmPasswordChange(e, { formData, setFormData, errors, setErrors })}
                         disabled={loading}
                         style={{
                             borderColor: errors.confirmPassword ? "#f44336" : undefined
@@ -381,7 +244,7 @@ export default function RegisterPage() {
                         <input
                             type="checkbox"
                             checked={formData.aceptaTerminos}
-                            onChange={handleTerminosChange}
+                            onChange={e => handleTerminosChange(e, { formData, setFormData, errors, setErrors })}
                             disabled={loading}
                             style={{ marginRight: "8px", cursor: "pointer" }}
                         />
