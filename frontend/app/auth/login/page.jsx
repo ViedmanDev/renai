@@ -241,7 +241,7 @@ export default function LoginPage() {
       </form>
 
       <p>
-        ¿No tienes cuenta? <Link href="/auth/login/register">Crea una aquí</Link>
+        ¿No tienes cuenta? <Link href="/auth/sign-up">Crea una aquí</Link>
       </p>
 
       <p className="separator">
@@ -249,20 +249,15 @@ export default function LoginPage() {
       </p>
 
       <div className="social-login">
-        <button 
+        <button
           className="social-button"
           onClick={() => {
-            window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/auth/google`;
+            window.location.href = `${API_URL}/auth/google`;
           }}
           type="button"
         >
           <img src="/google-icon.png" alt="" className="social-icon" />
           Continue con Google
-        </button>
-        <br />
-        <button className="social-button social-apple">
-          <img src="/logo-apple.png" alt="" className="social-icon" />
-          Continue con Apple
         </button>
       </div>
     </div>

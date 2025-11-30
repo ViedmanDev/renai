@@ -100,6 +100,26 @@ export default function RegisterPage() {
 
     return (
         <div className="login-container">
+            {/* Botón de flecha para volver atrás */}
+            <button
+                type="button"
+                onClick={() => router.push('/auth/login')}
+                aria-label="Go back to login"
+                style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#555",
+                    marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "1.2rem"
+                }}
+            >
+                <span className="material-symbols-rounded" aria-hidden="true" style={{ fontSize: "2rem", marginRight: "4px" }}>
+                    arrow_back
+                </span>
+            </button>
             <h2 className="form-title">Crear Cuenta</h2>
 
             <form className="login-form" onSubmit={handleRegister} noValidate>
