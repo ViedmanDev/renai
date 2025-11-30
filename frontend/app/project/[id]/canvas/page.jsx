@@ -446,6 +446,7 @@ export default function ProjectCanvasPage() {
           </IconButton>
 
           {/* Botones de privacidad y colaboradores */}
+          {/*  
           <IconButton
             onClick={() => setOpenPrivacySettings(true)}
             title="Configuración de privacidad"
@@ -457,7 +458,8 @@ export default function ProjectCanvasPage() {
           >
             <LockIcon fontSize="small" />
           </IconButton>
-          
+          */}
+          {/*
           <IconButton
             onClick={() => setOpenCollaborators(true)}
             title="Gestionar colaboradores"
@@ -469,6 +471,7 @@ export default function ProjectCanvasPage() {
           >
             <GroupIcon fontSize="small" />
           </IconButton>
+          */}
 
           <Box sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: "auto" } }} />
 
@@ -497,14 +500,16 @@ export default function ProjectCanvasPage() {
           </IconButton>
           
           {/* NUEVO: Badge de privacidad */}
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          {/*<Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <ProjectPrivacyBadge
               key={`badge-${currentProject?.visibility}-${currentProject?._id}`}
               visibility={currentProject?.visibility || 'private'}
               size="small"
             />
           </Box>
-
+          */}
+          
+          {/*
           <Typography
             variant="body1"
             sx={{
@@ -514,6 +519,7 @@ export default function ProjectCanvasPage() {
           >
             {currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}
           </Typography>
+          */}
           <Button
             variant="contained"
             sx={{
@@ -1031,6 +1037,7 @@ export default function ProjectCanvasPage() {
       </Dialog>
 
       {/* Modales de privacidad y colaboradores */}
+      {/*
       <ProjectPrivacySettings
         open={openPrivacySettings}
         onClose={() => {
@@ -1049,6 +1056,7 @@ export default function ProjectCanvasPage() {
           updateProject(projectId, { visibility: updatedProject.visibility });
         }}
       />
+      */}
 
       <ProjectCollaborators
         open={openCollaborators}
