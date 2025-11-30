@@ -276,18 +276,18 @@ export default function ProjectCanvasPage() {
   };
 
   const handleDetailClick = (detail) => {
-    setSelectedDetail(detail);
-    setOpenConfigModal(true);
+    // 1. Buscar si ya existe una config guardada para este detalle
     const existingConfig = configuredDetails.find((d) => d.id === detail.id);
-    const mergedDetail = {
-      ...detail,
-      ...(existingConfig || {}),
-    };
 
-    setSelectedDetail(mergedDetail);
+    // 2. Si existe, usamos esa config; si no, usamos el detalle original
+    const detailToEdit = existingConfig || detail;
+
+    console.log("🔍 Detail que se envía al modal:", detailToEdit);
+
+    // 3. Abrimos el modal con el detalle que ya incluye valor, banderas, etc.
+    setSelectedDetail(detailToEdit);
     setOpenConfigModal(true);
   };
-
   if (loading) {
     return (
       <Box
@@ -1537,10 +1537,7 @@ export default function ProjectCanvasPage() {
                     variant="body1"
                     color="text.secondary"
                     sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
-                  >
-                    No hay detalles seleccionados. Haz clic en "Agregar
-                    detalles" para comenzar.
-                  </Typography>
+                  ></Typography>
                 </Box>
               )}
             </Paper>

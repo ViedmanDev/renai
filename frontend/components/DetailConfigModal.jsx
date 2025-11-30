@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * COMPONENTE: DetailConfigModal
@@ -26,10 +26,11 @@
  * - flag_id (FK)
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
   Box,
   Typography,
   TextField,
@@ -39,64 +40,115 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   InputAdornment,
-} from "@mui/material"
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"
-import SearchIcon from "@mui/icons-material/Search"
-import CancelIcon from "@mui/icons-material/Cancel"
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"
-import AddIcon from "@mui/icons-material/Add"
-import RemoveIcon from "@mui/icons-material/Remove"
-import { PREDEFINED_FLAGS } from "@/constants/detailTypes"
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SearchIcon from "@mui/icons-material/Search";
+import CancelIcon from "@mui/icons-material/Cancel";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import { PREDEFINED_FLAGS } from "@/constants/detailTypes";
 
 export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   // Estados para configuración del detalle
-  const [fieldName, setFieldName] = useState("")
-  const [decimals, setDecimals] = useState(2)
-  const [selectedFlags, setSelectedFlags] = useState([])
-  const [privacy, setPrivacy] = useState("grupo")
-  const [searchFlag, setSearchFlag] = useState("")
-  const [initialValue, setInitialValue] = useState("")
-  const [dateValue, setDateValue] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [textValue, setTextValue] = useState("")
-  const [booleanValue, setBooleanValue] = useState(false)
-  const [attachments, setAttachments] = useState([])
-  const [selectedList, setSelectedList] = useState("")
-  const [internalNote, setInternalNote] = useState("")
-  const [criticalPath, setCriticalPath] = useState("")
-  const [productName, setProductName] = useState("")
-  const [productIndicator, setProductIndicator] = useState("")
+  const [fieldName, setFieldName] = useState("");
+  const [description, setDescription] = useState("");
+  const [decimals, setDecimals] = useState(2);
+  const [selectedFlags, setSelectedFlags] = useState([]);
+  const [privacy, setPrivacy] = useState("grupo");
+  const [searchFlag, setSearchFlag] = useState("");
+  const [initialValue, setInitialValue] = useState("");
+  const [dateValue, setDateValue] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [textValue, setTextValue] = useState("");
+  const [booleanValue, setBooleanValue] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [selectedList, setSelectedList] = useState("");
+  const [internalNote, setInternalNote] = useState("");
+  const [criticalPath, setCriticalPath] = useState("");
+  const [productName, setProductName] = useState("");
+  const [productIndicator, setProductIndicator] = useState("");
 
   useEffect(() => {
     if (detail && open) {
-      setFieldName(detail.fieldName || "")
-      setDecimals(detail.decimals || 2)
-      setSelectedFlags(detail.flags || [])
-      setPrivacy(detail.privacy || "grupo")
-      setInitialValue(detail.value || "")
-      setDateValue(detail.date || "")
-      setStartDate(detail.startDate || "")
-      setEndDate(detail.endDate || "")
-      setTextValue(detail.textValue || "")
-      setBooleanValue(detail.booleanValue || false)
-      setAttachments(detail.attachments || [])
-      setSelectedList(detail.selectedList || "")
-      setInternalNote(detail.internalNote || "")
-      setCriticalPath(detail.criticalPath || "")
-      setProductName(detail.productName || "")
-      setProductIndicator(detail.productIndicator || "")
+      console.log("Detail que entra al modal: ", detail);
+
+      // Nombre / descripción
+      setFieldName(detail.fieldName || detail.name || "");
+      setDescription(detail.description || "");
+
+      // Valor genérico que viene del detalle
+      const incomingValue = detail.value ?? detail.initialValue ?? "";
+
+      // NUMÉRICOS / MONEDA
+      setInitialValue(incomingValue);
+
+      // FECHA
+      if (detail.dataType === "date" || detail.id === "fecha") {
+        // si no hay detail.date, usa el value
+        setDateValue(detail.date || incomingValue || "");
+        setStartDate(detail.startDate || "");
+        setEndDate(detail.endDate || "");
+      } else {
+        setDateValue(detail.date || "");
+        setStartDate(detail.startDate || "");
+        setEndDate(detail.endDate || "");
+      }
+
+      // TEXTO
+      if (
+        detail.dataType === "text" ||
+        detail.id === "texto" ||
+        detail.id === "campo"
+      ) {
+        setTextValue(detail.textValue ?? incomingValue ?? "");
+      } else {
+        setTextValue(detail.textValue || "");
+      }
+      // BOOLEAN (sí / no)
+      let incomingBoolean = false;
+
+      // Si ya viene como booleano
+      if (typeof detail.booleanValue === "boolean") {
+        incomingBoolean = detail.booleanValue;
+      } else if (typeof detail.value === "boolean") {
+        incomingBoolean = detail.value;
+      } else if (typeof detail.value === "string") {
+        // Por si lo estás guardando como "true"/"false"
+        if (detail.value.toLowerCase() === "true") incomingBoolean = true;
+        if (detail.value.toLowerCase() === "false") incomingBoolean = false;
+      }
+
+      setBooleanValue(incomingBoolean);
+
+      // Otros campos
+      setDecimals(detail.decimals || 2);
+      setSelectedFlags(detail.flags || []);
+      setPrivacy(detail.privacy || "grupo");
+      setAttachments(detail.attachments || []);
+      setSelectedList(detail.selectedList || "");
+      setInternalNote(detail.internalNote || "");
+      setCriticalPath(detail.criticalPath || "");
+      setProductName(detail.productName || "");
+      setProductIndicator(detail.productIndicator || "");
     }
-  }, [detail, open])
+  }, [detail, open]);
 
   const handleSave = () => {
+    const isBooleanDetail =
+      detail.dataType === "boolean" || detail.id === "si_no";
     const config = {
       ...detail,
       fieldName,
+      description,
       decimals,
       flags: selectedFlags,
       privacy,
+      value: isBooleanDetail ? booleanValue : initialValue,
+      initialValue: isBooleanDetail ? undefined : initialValue,
       value: initialValue,
+      initialValue,
       date: dateValue,
       startDate: startDate,
       endDate: endDate,
@@ -108,47 +160,50 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
       criticalPath: criticalPath,
       productName: productName,
       productIndicator: productIndicator,
-    }
-    onSave(config)
-    handleClose()
-  }
+    };
+    onSave(config);
+    handleClose();
+  };
 
   const handleClose = () => {
-    setFieldName("")
-    setDecimals(2)
-    setSelectedFlags([])
-    setPrivacy("grupo")
-    setSearchFlag("")
-    setInitialValue("")
-    setDateValue("")
-    setStartDate("")
-    setEndDate("")
-    setTextValue("")
-    setBooleanValue(false)
-    setAttachments([])
-    setSelectedList("")
-    setInternalNote("")
-    setCriticalPath("")
-    setProductName("")
-    setProductIndicator("")
-    onClose()
-  }
+    setFieldName("");
+    setDescription("");
+    setDecimals(2);
+    setSelectedFlags([]);
+    setPrivacy("grupo");
+    setSearchFlag("");
+    setInitialValue("");
+    setDateValue("");
+    setStartDate("");
+    setEndDate("");
+    setTextValue("");
+    setBooleanValue(false);
+    setAttachments([]);
+    setSelectedList("");
+    setInternalNote("");
+    setCriticalPath("");
+    setProductName("");
+    setProductIndicator("");
+    onClose();
+  };
 
   /**
    * Agrega o quita una bandera de la selección
    */
   const toggleFlag = (flag) => {
     if (selectedFlags.find((f) => f.id === flag.id)) {
-      setSelectedFlags(selectedFlags.filter((f) => f.id !== flag.id))
+      setSelectedFlags(selectedFlags.filter((f) => f.id !== flag.id));
     } else {
-      setSelectedFlags([...selectedFlags, flag])
+      setSelectedFlags([...selectedFlags, flag]);
     }
-  }
+  };
 
   // Filtrar banderas según búsqueda
-  const filteredFlags = PREDEFINED_FLAGS.filter((flag) => flag.name.toLowerCase().includes(searchFlag.toLowerCase()))
+  const filteredFlags = PREDEFINED_FLAGS.filter((flag) =>
+    flag.name.toLowerCase().includes(searchFlag.toLowerCase())
+  );
 
-  if (!detail) return null
+  if (!detail) return null;
 
   return (
     <Dialog
@@ -192,9 +247,25 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 value={fieldName}
                 onChange={(e) => setFieldName(e.target.value)}
                 placeholder="Nombre del campo"
+                sx={{ mb: 2 }}
+              />
+
+              {/* Descripción del campo */}
+              <Typography variant="subtitle2" gutterBottom>
+                Descripción del campo
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Texto que se muestra debajo del nombre"
                 sx={{ mb: 3 }}
               />
 
+              {/* Ruta crítica (solo por id viejo) */}
               {detail.id === "ruta_critica" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
@@ -212,6 +283,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
+              {/* Producto (id viejo) */}
               {detail.id === "producto" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
@@ -227,6 +299,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
+              {/* Indicador de producto (id viejo) */}
               {detail.id === "indicador_producto" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
@@ -244,7 +317,10 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
-              {detail.id === "numerico" && (
+              {/* NUMÉRICO (id viejo "numerico" o dataType "number" / "currency") */}
+              {(detail.id === "numerico" ||
+                detail.dataType === "number" ||
+                detail.dataType === "currency") && (
                 <>
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="subtitle2" gutterBottom>
@@ -255,17 +331,27 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                       size="small"
                       type="number"
                       value={decimals}
-                      onChange={(e) => setDecimals(Number.parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setDecimals(Number.parseInt(e.target.value) || 0)
+                      }
                       InputProps={{
                         endAdornment: (
                           <InputAdornment position="end">
-                            <Box sx={{ display: "flex", flexDirection: "column" }}>
-                              <IconButton size="small" onClick={() => setDecimals((d) => d + 1)} sx={{ p: 0 }}>
+                            <Box
+                              sx={{ display: "flex", flexDirection: "column" }}
+                            >
+                              <IconButton
+                                size="small"
+                                onClick={() => setDecimals((d) => d + 1)}
+                                sx={{ p: 0 }}
+                              >
                                 <AddIcon fontSize="small" />
                               </IconButton>
                               <IconButton
                                 size="small"
-                                onClick={() => setDecimals((d) => Math.max(0, d - 1))}
+                                onClick={() =>
+                                  setDecimals((d) => Math.max(0, d - 1))
+                                }
                                 sx={{ p: 0 }}
                               >
                                 <RemoveIcon fontSize="small" />
@@ -276,6 +362,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                       }}
                     />
                   </Box>
+
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Valor numérico
@@ -291,26 +378,66 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                         step: Math.pow(10, -decimals),
                       }}
                       InputProps={{
-                        startAdornment:
-                          detail.selectedSubOption === "porcentaje" ? (
-                            <InputAdornment position="start">%</InputAdornment>
-                          ) : detail.selectedSubOption === "dolar" ? (
-                            <InputAdornment position="start">$</InputAdornment>
-                          ) : detail.selectedSubOption === "usd" ? (
-                            <InputAdornment position="start">USD</InputAdornment>
-                          ) : detail.selectedSubOption === "cop" ? (
-                            <InputAdornment position="start">COP</InputAdornment>
-                          ) : null,
+                        startAdornment: (() => {
+                          // Soporta nuevo esquema (currencyType) y el viejo (selectedSubOption)
+                          if (detail.currencyType === "USD") {
+                            return (
+                              <InputAdornment position="start">
+                                USD
+                              </InputAdornment>
+                            );
+                          }
+                          if (detail.currencyType === "COP") {
+                            return (
+                              <InputAdornment position="start">
+                                COP
+                              </InputAdornment>
+                            );
+                          }
+                          if (detail.selectedSubOption === "porcentaje") {
+                            return (
+                              <InputAdornment position="start">
+                                %
+                              </InputAdornment>
+                            );
+                          }
+                          if (detail.selectedSubOption === "dolar") {
+                            return (
+                              <InputAdornment position="start">
+                                $
+                              </InputAdornment>
+                            );
+                          }
+                          if (detail.selectedSubOption === "usd") {
+                            return (
+                              <InputAdornment position="start">
+                                USD
+                              </InputAdornment>
+                            );
+                          }
+                          if (detail.selectedSubOption === "cop") {
+                            return (
+                              <InputAdornment position="start">
+                                COP
+                              </InputAdornment>
+                            );
+                          }
+                          return null;
+                        })(),
                       }}
                     />
                   </Box>
                 </>
               )}
 
-              {(detail.id === "valor_cotizacion" || detail.id === "valor_venta") && (
+              {/* VALOR COTIZACIÓN / VENTA (ids viejos) */}
+              {(detail.id === "valor_cotizacion" ||
+                detail.id === "valor_venta") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    {detail.id === "valor_cotizacion" ? "Valor de cotización" : "Valor de venta"}
+                    {detail.id === "valor_cotizacion"
+                      ? "Valor de cotización"
+                      : "Valor de venta"}
                   </Typography>
                   <TextField
                     fullWidth
@@ -323,31 +450,18 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                       step: 0.01,
                     }}
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      startAdornment: (
+                        <InputAdornment position="start">$</InputAdornment>
+                      ),
                     }}
                   />
                 </Box>
               )}
 
-              {detail.id === "fecha" && (
+              {/* FECHA: id viejo "fecha" O dataType "date" */}
+              {(detail.id === "fecha" || detail.dataType === "date") && (
                 <Box sx={{ mb: 3 }}>
-                  {detail.dateType === "single" ? (
-                    <>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Fecha
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="date"
-                        value={dateValue}
-                        onChange={(e) => setDateValue(e.target.value)}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                      />
-                    </>
-                  ) : detail.dateType === "range" ? (
+                  {detail.dateType === "date" ? (
                     <>
                       <Typography variant="subtitle2" gutterBottom>
                         Fecha de inicio
@@ -377,11 +491,30 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                         }}
                       />
                     </>
-                  ) : null}
+                  ) : (
+                    <>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Fecha
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="date"
+                        value={dateValue}
+                        onChange={(e) => setDateValue(e.target.value)}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                      />
+                    </>
+                  )}
                 </Box>
               )}
 
-              {(detail.id === "texto" || detail.id === "campo") && (
+              {/* TEXTO: ids viejos "texto" / "campo" O dataType "text" */}
+              {(detail.id === "texto" ||
+                detail.id === "campo" ||
+                detail.dataType === "text") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Contenido del texto
@@ -398,7 +531,8 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
-              {detail.id === "si_no" && (
+              {/* SÍ / NO: id viejo "si_no" O dataType "boolean" */}
+              {(detail.id === "si_no" || detail.dataType === "boolean") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Valor
@@ -408,7 +542,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                     exclusive
                     onChange={(e, newValue) => {
                       if (newValue !== null) {
-                        setBooleanValue(newValue)
+                        setBooleanValue(newValue);
                       }
                     }}
                     fullWidth
@@ -419,7 +553,9 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
-              {detail.id === "ponderacion" && (
+              {/* PONDERACIÓN: id viejo + posible futuro dataType "percent" */}
+              {(detail.id === "ponderacion" ||
+                detail.dataType === "percent") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Valor de ponderación (%)
@@ -437,13 +573,16 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                       step: 0.1,
                     }}
                     InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      endAdornment: (
+                        <InputAdornment position="end">%</InputAdornment>
+                      ),
                     }}
                   />
                 </Box>
               )}
 
-              {detail.id === "nota_interna" && (
+              {/* NOTA INTERNA: id viejo + posible dataType "note" */}
+              {(detail.id === "nota_interna" || detail.dataType === "note") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Nota interna
@@ -460,7 +599,9 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </Box>
               )}
 
-              {detail.id === "adjuntos" && (
+              {/* ADJUNTOS: id viejo + posible dataType "attachments" */}
+              {(detail.id === "adjuntos" ||
+                detail.dataType === "attachments") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Archivos adjuntos
@@ -472,20 +613,25 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                       hidden
                       multiple
                       onChange={(e) => {
-                        const files = Array.from(e.target.files)
-                        setAttachments(files)
+                        const files = Array.from(e.target.files);
+                        setAttachments(files);
                       }}
                     />
                   </Button>
                   {attachments.length > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mt: 1, display: "block" }}
+                    >
                       {attachments.length} archivo(s) seleccionado(s)
                     </Typography>
                   )}
                 </Box>
               )}
 
-              {detail.id === "desde_listas" && (
+              {/* DESDE LISTAS: id viejo + posible dataType "list" */}
+              {(detail.id === "desde_listas" || detail.dataType === "list") && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Seleccionar de lista
@@ -538,7 +684,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 </ToggleButtonGroup>
               </Box>
 
-              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                gutterBottom
+              >
                 Sugerencias
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
@@ -559,7 +710,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 ))}
               </Box>
 
-              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                gutterBottom
+              >
                 Banderas seleccionadas
               </Typography>
               <Box
@@ -594,7 +750,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 )}
               </Box>
 
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2, mb: 1 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mt: 2, mb: 1 }}
+              >
                 Disponibles
               </Typography>
               <Box
@@ -628,7 +789,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
               <Typography variant="subtitle2" gutterBottom>
                 Privacidad del campo
               </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 2 }}
+              >
                 Elige quién verá el campo
               </Typography>
 
@@ -657,7 +823,9 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
           </Box>
 
           {/* Botones de acción */}
-          <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 4 }}>
+          <Box
+            sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 4 }}
+          >
             <IconButton
               onClick={handleClose}
               sx={{
@@ -695,5 +863,5 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
         </DialogContent>
       </Box>
     </Dialog>
-  )
+  );
 }
