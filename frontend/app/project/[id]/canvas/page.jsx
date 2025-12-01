@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Collapse,
+  Tooltip,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -48,6 +50,15 @@ import SecurityIcon from "@mui/icons-material/Security";
 import GroupManager from "@/components/GroupManager";
 import ProjectGroupPermissions from "@/components/ProjectGroupPermissions";
 import PermissionsMatrix from "@/components/PermissionsMatrix";
+import CreateElementModal from "@/components/CreateElementModal";
+import CreateSubElementModal from "@/components/CreateSubElementModal";
+import CreateDetailModal from "@/components/CreateDetailModal";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import DescriptionIcon from "@mui/icons-material/Description";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -80,7 +91,29 @@ export default function ProjectCanvasPage() {
   const [openGroupManager, setOpenGroupManager] = useState(false);
   const [openProjectGroups, setOpenProjectGroups] = useState(false);
   const [openPermissionsMatrix, setOpenPermissionsMatrix] = useState(false);
-  
+  const [elements, setElements] = useState([]);
+  const [expandedElements, setExpandedElements] = useState({});
+  const [expandedSubElements, setExpandedSubElements] = useState({});
+
+  const [openCreateElement, setOpenCreateElement] = useState(false);
+  const [openCreateSubElement, setOpenCreateSubElement] = useState(false);
+  const [openCreateDetail, setOpenCreateDetail] = useState(false);
+  const [selectedElementIndex, setSelectedElementIndex] = useState(null);
+  const [selectedSubElementIndex, setSelectedSubElementIndex] = useState(null);
+
+  const [openEditElement, setOpenEditElement] = useState(false);
+  const [elementToEditIndex, setElementToEditIndex] = useState(null);
+  const [editElementName, setEditElementName] = useState("");
+  const [editElementDescription, setEditElementDescription] = useState("");
+
+  const [openEditSubElement, setOpenEditSubElement] = useState(false);
+  const [editSubElemIndices, setEditSubElemIndices] = useState({
+    elem: null,
+    sub: null,
+  });
+  const [editSubElemName, setEditSubElemName] = useState("");
+  const [editSubElemDescription, setEditSubElemDescription] = useState("");
+
   // Estados para privacidad y colaboradores
   const [openPrivacySettings, setOpenPrivacySettings] = useState(false);
   const [openCollaborators, setOpenCollaborators] = useState(false);
@@ -89,12 +122,12 @@ export default function ProjectCanvasPage() {
     const loadProject = async () => {
       const token = localStorage.getItem("token");
       if (!token || !params.id) {
-        console.warn('⚠️ No hay token o ID de proyecto');
+        console.warn("⚠️ No hay token o ID de proyecto");
         return;
       }
 
       try {
-        console.log('📦 Intentando cargar proyecto:', params.id);
+        console.log("📦 Intentando cargar proyecto:", params.id);
         const res = await fetch(`${API_URL}/projects/${params.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -103,54 +136,234 @@ export default function ProjectCanvasPage() {
 
         if (res.ok) {
           const project = await res.json();
-          console.log('Proyecto cargado desde backend:', project);
+          console.log("Proyecto cargado desde backend:", project);
           setCurrentProject(project);
         } else {
-          console.error('❌ Error cargando proyecto, status:', res.status);
+          console.error("❌ Error cargando proyecto, status:", res.status);
           // NO redirigir, permitir que funcione con datos locales
         }
       } catch (error) {
-        console.error('❌ Error de red:', error);
+        console.error("❌ Error de red:", error);
         //NO redirigir, permitir que funcione offline
       }
     };
 
     // Solo cargar si currentProject está null o es diferente
-    if (!currentProject || (currentProject._id !== params.id && currentProject.id !== params.id)) {
+    if (
+      !currentProject ||
+      (currentProject._id !== params.id && currentProject.id !== params.id)
+    ) {
       loadProject();
     }
   }, [params.id, API_URL]);
+  if (elementToEditIndex !== null) {
+    const element = elements[elementToEditIndex];
+    // ...
+  }
 
   //Debug logs
   useEffect(() => {
-    console.log('🔄 currentProject cambió:', currentProject);
-    console.log('👁️ Visibilidad actual:', currentProject?.visibility);
+    console.log("🔄 currentProject cambió:", currentProject);
+    console.log("👁️ Visibilidad actual:", currentProject?.visibility);
   }, [currentProject]);
 
   useEffect(() => {
-    console.log('👤 Usuario:', user);
+    console.log("👤 Usuario:", user);
   }, [user]);
 
   useEffect(() => {
     if (currentProject) {
       setProjectName(currentProject.name);
       setProjectDescription(currentProject.description || "");
+      setElements(currentProject.elements || []);
     }
   }, [currentProject]);
 
-  const handleDetailClick = (detail) => {
-    setSelectedDetail(detail);
-    setOpenConfigModal(true);
+  const toggleElement = (index) => {
+    setExpandedElements((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
   };
 
+  const toggleSubElement = (elementIndex, subIndex) => {
+    const key = `${elementIndex}-${subIndex}`;
+    setExpandedSubElements((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleCreateElement = (element) => {
+    const newElements = [
+      ...elements,
+      { ...element, id: Date.now(), subElements: [] },
+    ];
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  const handleCreateSubElement = (subElement) => {
+    const newElements = [...elements];
+    if (!newElements[selectedElementIndex].subElements) {
+      newElements[selectedElementIndex].subElements = [];
+    }
+    newElements[selectedElementIndex].subElements.push({
+      ...subElement,
+      id: Date.now(),
+      details: [],
+    });
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  const handleCreateDetail = (detail) => {
+    const newElements = [...elements];
+    if (
+      !newElements[selectedElementIndex].subElements[selectedSubElementIndex]
+        .details
+    ) {
+      newElements[selectedElementIndex].subElements[
+        selectedSubElementIndex
+      ].details = [];
+    }
+    newElements[selectedElementIndex].subElements[
+      selectedSubElementIndex
+    ].details.push({
+      ...detail,
+      id: Date.now(),
+    });
+    setElements(newElements);
+    updateProject(currentProject.id, { elements: newElements });
+  };
+
+  //editar los elementos
+  const handleSaveElementEdit = () => {
+    if (elementToEditIndex === null || !currentProject) return;
+
+    const projectId = currentProject._id || currentProject.id;
+    const newElements = [...elements];
+
+    newElements[elementToEditIndex] = {
+      ...newElements[elementToEditIndex],
+      name: editElementName.trim(),
+      description: editElementDescription.trim(),
+    };
+
+    setElements(newElements);
+    updateProject(projectId, { elements: newElements });
+
+    setOpenEditElement(false);
+    setElementToEditIndex(null);
+  };
+
+  // editar sub elementos
+  const handleSaveSubElementEdit = () => {
+    if (!editSubElemIndices || !currentProject) return;
+    const projectId = currentProject._id || currentProject.id;
+    const { elem, sub } = editSubElemIndices;
+
+    const newElements = [...elements];
+    newElements[elem].subElements[sub] = {
+      ...newElements[elem].subElements[sub],
+      name: editSubElemName.trim(),
+      description: editSubElemDescription.trim(),
+    };
+
+    setElements(newElements);
+    updateProject(projectId, { elements: newElements });
+    setOpenEditSubElement(false);
+    setEditSubElemIndices({ elem: null, sub: null });
+  };
+
+  // Eliminar ELEMENTO
+  const handleDeleteElement = (elementId) => {
+    const ok = window.confirm("¿Eliminar este elemento y todo su contenido?");
+    if (!ok) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    setElements((prev) => {
+      const newElements = prev.filter((el) => el.id !== elementId);
+      if (projectId) {
+        updateProject(projectId, { elements: newElements });
+      }
+      return newElements;
+    });
+  };
+
+  // Eliminar SUBELEMENTO
+  const handleDeleteSubElement = (elementId, subElementId) => {
+    const ok = window.confirm("¿Eliminar este sub elemento y sus detalles?");
+    if (!ok) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    setElements((prev) => {
+      const newElements = prev.map((el) =>
+        el.id === elementId
+          ? {
+              ...el,
+              subElements: (el.subElements || []).filter(
+                (sub) => sub.id !== subElementId
+              ),
+            }
+          : el
+      );
+
+      if (projectId) {
+        updateProject(projectId, { elements: newElements });
+      }
+
+      return newElements;
+    });
+  };
+
+  // Eliminar DETALLE
+  const handleDeleteDetail = (elementId, subElementId, detailId) => {
+    const ok = window.confirm("¿Eliminar este detalle?");
+    if (!ok) return;
+
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === elementId
+          ? {
+              ...el,
+              subElements: el.subElements.map((sub) =>
+                sub.id === subElementId
+                  ? {
+                      ...sub,
+                      details: sub.details.filter((d) => d.id !== detailId),
+                    }
+                  : sub
+              ),
+            }
+          : el
+      )
+    );
+  };
+
+  const handleDetailClick = (detail) => {
+    // 1. Buscar si ya existe una config guardada para este detalle
+    const existingConfig = configuredDetails.find((d) => d.id === detail.id);
+
+    // 2. Si existe, usamos esa config; si no, usamos el detalle original
+    const detailToEdit = existingConfig || detail;
+
+    console.log("🔍 Detail que se envía al modal:", detailToEdit);
+
+    // 3. Abrimos el modal con el detalle que ya incluye valor, banderas, etc.
+    setSelectedDetail(detailToEdit);
+    setOpenConfigModal(true);
+  };
   if (loading) {
     return (
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh'
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
         }}
       >
         <CircularProgress />
@@ -316,11 +529,11 @@ export default function ProjectCanvasPage() {
   };
 
   const handleSaveProjectName = () => {
-    if (projectName.trim() && currentProject) {
-      const projectId = currentProject._id || currentProject.id;
-      updateProject(projectId, { name: projectName.trim() });
-      setIsEditingProjectName(false);
-    }
+    const newName = projectName.trim();
+    if (!currentProject || !newName) return;
+
+    handleEditProject({ name: newName });
+    setIsEditingProjectName(false);
   };
 
   const handleCancelEditProjectName = () => {
@@ -329,55 +542,105 @@ export default function ProjectCanvasPage() {
   };
 
   const handleSaveProjectDescription = () => {
-    if (currentProject) {
-      const projectId = currentProject._id || currentProject.id;
-      updateProject(projectId, {
-        description: projectDescription.trim(),
-      });
-      setIsEditingDescription(false);
-    }
-  }
+    const newDescription = projectDescription.trim();
+    if (!currentProject) return;
+
+    handleEditProject({ description: newDescription });
+    setIsEditingDescription(false);
+  };
 
   const handleCancelEditProjectDescription = () => {
     setProjectDescription(currentProject?.description || "");
     setIsEditingDescription(false);
   };
 
+  const handleEditProject = async (updates) => {
+    // Si no hay nada que actualizar, salimos
+    if (!updates || Object.keys(updates).length === 0) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId || projectId === "undefined") {
+      console.error("❌ ID inválido para editar:", projectId);
+      alert("Error: No se pudo identificar el proyecto");
+      return;
+    }
+
+    console.log("✏️ Editando proyecto:", projectId, "con:", updates);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "PATCH", // o "PUT" si tu API lo usa así
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const updatedProject = await res.json();
+        console.log("✅ Proyecto actualizado:", updatedProject);
+
+        // Actualizar lista de proyectos en el contexto
+        updateProject(projectId, updates);
+
+        // Actualizar currentProject en memoria
+        setCurrentProject((prev) =>
+          prev && (prev._id === projectId || prev.id === projectId)
+            ? { ...prev, ...updates }
+            : prev
+        );
+      } else {
+        const data = await res.json();
+        alert("Error al actualizar: " + (data.message || "Error desconocido"));
+      }
+    } catch (error) {
+      console.error("❌ Error editando proyecto:", error);
+      alert("Error de conexión al actualizar el proyecto");
+    }
+  };
+
   const handleDeleteProject = async () => {
-    if (!confirm("¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer.")) {
+    if (
+      !confirm(
+        "¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer."
+      )
+    ) {
       return;
     }
 
     const projectId = currentProject?._id || currentProject?.id;
 
-    if (!projectId || projectId === 'undefined') {
-      console.error('❌ ID inválido para eliminar:', projectId);
-      alert('Error: No se pudo identificar el proyecto');
+    if (!projectId || projectId === "undefined") {
+      console.error("❌ ID inválido para eliminar:", projectId);
+      alert("Error: No se pudo identificar el proyecto");
       return;
     }
 
-    console.log('🗑️ Eliminando proyecto:', projectId);
+    console.log("🗑️ Eliminando proyecto:", projectId);
 
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_URL}/projects/${projectId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (res.ok) {
-        console.log('✅ Proyecto eliminado correctamente');
+        console.log("✅ Proyecto eliminado correctamente");
         deleteProject(projectId); // Actualizar contexto
         router.push("/");
       } else {
         const data = await res.json();
-        alert('Error al eliminar: ' + (data.message || 'Error desconocido'));
+        alert("Error al eliminar: " + (data.message || "Error desconocido"));
       }
     } catch (error) {
-      console.error('❌ Error eliminando proyecto:', error);
-      alert('Error de conexión al eliminar el proyecto');
+      console.error("❌ Error eliminando proyecto:", error);
+      alert("Error de conexión al eliminar el proyecto");
     }
   };
 
@@ -397,6 +660,24 @@ export default function ProjectCanvasPage() {
   };
 
   const filteredDetails = getFilteredDetails();
+
+  const formatDetailValue = (detail) => {
+    if (!detail.value) return "Sin valor";
+
+    switch (detail.dataType) {
+      case "currency":
+      case "number":
+        const symbol = detail.currencyType || "";
+        // Using toLocaleString for better number formatting with commas
+        return `${symbol} ${Number(detail.value).toLocaleString("es-ES")}`;
+      case "date":
+        return new Date(detail.value).toLocaleDateString("es-ES");
+      case "boolean":
+        return detail.value === "true" ? "Sí" : "No";
+      default:
+        return detail.value;
+    }
+  };
 
   return (
     <Box
@@ -451,22 +732,20 @@ export default function ProjectCanvasPage() {
             onClick={() => setOpenPrivacySettings(true)}
             title="Configuración de privacidad"
             size="small"
-            sx={{ 
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+            sx={{
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <LockIcon fontSize="small" />
           </IconButton>
-          */}
-          {/*
           <IconButton
             onClick={() => setOpenCollaborators(true)}
             title="Gestionar colaboradores"
             size="small"
-            sx={{ 
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+            sx={{
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <GroupIcon fontSize="small" />
@@ -480,8 +759,8 @@ export default function ProjectCanvasPage() {
             title="Grupos del proyecto"
             size="small"
             sx={{
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <GroupIcon fontSize="small" />
@@ -492,22 +771,21 @@ export default function ProjectCanvasPage() {
             title="Matriz de permisos"
             size="small"
             sx={{
-              bgcolor: '#f5f5f5',
-              '&:hover': { bgcolor: '#e0e0e0' }
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
           >
             <SecurityIcon fontSize="small" />
           </IconButton>
-          
+
           {/* NUEVO: Badge de privacidad */}
-          {/*<Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Box sx={{ display: { xs: "none", sm: "block" } }}>
             <ProjectPrivacyBadge
               key={`badge-${currentProject?.visibility}-${currentProject?._id}`}
-              visibility={currentProject?.visibility || 'private'}
+              visibility={currentProject?.visibility || "private"}
               size="small"
             />
           </Box>
-          */}
           
           {/*
           <Typography
@@ -517,7 +795,7 @@ export default function ProjectCanvasPage() {
               fontSize: { xs: "0.875rem", sm: "1rem" },
             }}
           >
-            {currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}
+            {currentProject?.name}
           </Typography>
           */}
           <Button
@@ -536,7 +814,7 @@ export default function ProjectCanvasPage() {
           </Button>
           <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
             <Avatar
-              key={user?._id || user?.email || 'no-user'}
+              key={user?._id || user?.email || "no-user"}
               sx={{
                 bgcolor: "#5e35b1",
                 width: { xs: 32, sm: 40 },
@@ -615,7 +893,7 @@ export default function ProjectCanvasPage() {
                       variant="h6"
                       sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
                     >
-                      {currentProject?.name || "Proyecto demo"}
+                      {currentProject?.name}
                     </Typography>
                     <IconButton
                       size="small"
@@ -641,15 +919,14 @@ export default function ProjectCanvasPage() {
                 >
                   <TaskIcon fontSize="small" />
                 </IconButton>
-                <IconButton
+                {/* <IconButton
                   size="small"
                   onClick={() => setOpenTagManager(true)}
                   title="Gestionar etiquetas"
                 >
                   <SellIcon fontSize="small" />
-                </IconButton>
+                </IconButton> */}
               </Box>
-
               {/* Project Description */}
               <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: "center" }}>
                 {isEditingDescription ? (
@@ -707,8 +984,7 @@ export default function ProjectCanvasPage() {
                   </Box>
                 )}
               </Box>
-
-              {/* Action Buttons */}
+              {/*Action Buttons*/}
               <Box
                 sx={{
                   display: "flex",
@@ -718,7 +994,7 @@ export default function ProjectCanvasPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <Button
+                {/* <Button
                   variant="outlined"
                   startIcon={<AddIcon />}
                   onClick={() => router.push(`/project/${params.id}/details`)}
@@ -729,8 +1005,8 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Agregar detalles
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
                   onClick={() => {
@@ -746,9 +1022,460 @@ export default function ProjectCanvasPage() {
                   }}
                 >
                   Editar detalles
+                </Button> */}
+              </Box>
+              {/* Action Button */}
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenCreateElement(true)}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    px: { xs: 1.5, sm: 2 },
+                  }}
+                >
+                  Crear Elemento
                 </Button>
               </Box>
+              {/* Elements Hierarchy */}
+              {elements.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {elements.map((element, elemIndex) => (
+                    <Box
+                      key={element.id || elemIndex}
+                      sx={{
+                        bgcolor: "#f9fafb",
+                        borderRadius: 2,
+                        border: "2px solid #e5e7eb",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Element Header */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          p: 2,
+                          bgcolor: "#e0e7ff",
+                          cursor: "pointer",
+                          "&:hover": { bgcolor: "#c7d2fe" },
+                        }}
+                        onClick={() => toggleElement(elemIndex)}
+                      >
+                        <IconButton size="small" sx={{ mr: 1 }}>
+                          {expandedElements[elemIndex] ? (
+                            <ExpandMoreIcon />
+                          ) : (
+                            <ChevronRightIcon />
+                          )}
+                        </IconButton>
+                        <AccountTreeIcon sx={{ mr: 1, color: "#6366f1" }} />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {element.name}
+                          </Typography>
+                          {element.description && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {element.description}
+                            </Typography>
+                          )}
+                        </Box>
+                        {/* botón editar elemento */}
+                        <Tooltip title="Editar elemento">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation(); // para que no colapse/expanda al hacer click
+                              setElementToEditIndex(elemIndex);
+                              setEditElementName(element.name || "");
+                              setEditElementDescription(
+                                element.description || ""
+                              );
+                              setOpenEditElement(true);
+                            }}
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Eliminar elemento">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteElement(element.id);
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
 
+                        <Tooltip title="Crear sub-elemento">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedElementIndex(elemIndex);
+                              setOpenCreateSubElement(true);
+                            }}
+                            sx={{
+                              bgcolor: "white",
+                              "&:hover": { bgcolor: "#f3f4f6" },
+                            }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+
+                      {/* Element Content */}
+                      <Collapse
+                        in={expandedElements[elemIndex]}
+                        timeout="auto"
+                        unmountOnExit
+                      >
+                        <Box sx={{ p: 3 }}>
+                          {element.subElements &&
+                          element.subElements.length > 0 ? (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 2,
+                              }}
+                            >
+                              {element.subElements.map((subElem, subIndex) => {
+                                const subKey = `${elemIndex}-${subIndex}`;
+                                return (
+                                  <Box
+                                    key={subElem.id || subIndex}
+                                    sx={{
+                                      bgcolor: "#fef3c7",
+                                      borderRadius: 1,
+                                      border: "1px solid #fcd34d",
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {/* Sub-Element Header */}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        p: 1.5,
+                                        cursor: "pointer",
+                                        "&:hover": { bgcolor: "#fde68a" },
+                                      }}
+                                      onClick={() =>
+                                        toggleSubElement(elemIndex, subIndex)
+                                      }
+                                    >
+                                      <IconButton size="small" sx={{ mr: 1 }}>
+                                        {expandedSubElements[subKey] ? (
+                                          <ExpandMoreIcon />
+                                        ) : (
+                                          <ChevronRightIcon />
+                                        )}
+                                      </IconButton>
+                                      <AssignmentIcon
+                                        sx={{ mr: 1, color: "#f59e0b" }}
+                                      />
+                                      <Box sx={{ flexGrow: 1 }}>
+                                        <Typography
+                                          variant="body1"
+                                          fontWeight="500"
+                                        >
+                                          {subElem.name}
+                                        </Typography>
+                                        {subElem.description && (
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
+                                            {subElem.description}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                      {/* BOTONES EDITAR / ELIMINAR SUB-ELEMENTO */}
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 1,
+                                        }}
+                                      >
+                                        <Tooltip title="Editar sub-elemento">
+                                          <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditSubElemIndices({
+                                                elem: elemIndex,
+                                                sub: subIndex,
+                                              });
+                                              setEditSubElemName(
+                                                subElem.name || ""
+                                              );
+                                              setEditSubElemDescription(
+                                                subElem.description || ""
+                                              );
+                                              setOpenEditSubElement(true);
+                                            }}
+                                            sx={{ mr: 0.5 }}
+                                          >
+                                            <EditIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+
+                                        <Tooltip title="Eliminar sub-elemento">
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteSubElement(
+                                                element.id,
+                                                subElem.id
+                                              );
+                                            }}
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Box>
+                                      <Tooltip title="Crear detalle">
+                                        <IconButton
+                                          size="small"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedElementIndex(elemIndex);
+                                            setSelectedSubElementIndex(
+                                              subIndex
+                                            );
+                                            setOpenCreateDetail(true);
+                                          }}
+                                          sx={{
+                                            bgcolor: "white",
+                                            "&:hover": { bgcolor: "#f3f4f6" },
+                                          }}
+                                        >
+                                          <AddIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Box>
+
+                                    {/* Sub-Element Content (Details) */}
+                                    <Collapse
+                                      in={expandedSubElements[subKey]}
+                                      timeout="auto"
+                                      unmountOnExit
+                                    >
+                                      <Box sx={{ p: 2, bgcolor: "#fffbeb" }}>
+                                        {subElem.details &&
+                                        subElem.details.length > 0 ? (
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              flexDirection: "column",
+                                              gap: 1.5,
+                                            }}
+                                          >
+                                            {subElem.details.map(
+                                              (detail, detailIndex) => (
+                                                <Box
+                                                  key={detail.id || detailIndex}
+                                                  sx={{
+                                                    p: 2,
+                                                    bgcolor: "white",
+                                                    borderRadius: 1,
+                                                    borderLeft:
+                                                      "3px solid #f59e0b",
+                                                    cursor: "pointer",
+                                                    "&:hover": {
+                                                      bgcolor: "#f9fafb",
+                                                    },
+                                                  }}
+                                                  onClick={() =>
+                                                    handleDetailClick(detail)
+                                                  }
+                                                >
+                                                  {/* CABECERA DEL DETALLE */}
+                                                  <Box
+                                                    sx={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      justifyContent:
+                                                        "space-between",
+                                                      mb: 1,
+                                                      gap: 1,
+                                                    }}
+                                                  >
+                                                    <Box
+                                                      sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 1.5,
+                                                      }}
+                                                    >
+                                                      <DescriptionIcon
+                                                        fontSize="small"
+                                                        sx={{
+                                                          color: "#6b7280",
+                                                        }}
+                                                      />
+                                                      <Typography
+                                                        variant="body2"
+                                                        fontWeight="500"
+                                                      >
+                                                        {detail.name}
+                                                        {detail.required && (
+                                                          <Chip
+                                                            label="Requerido"
+                                                            size="small"
+                                                            color="error"
+                                                            sx={{
+                                                              ml: 1,
+                                                              height: 20,
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </Typography>
+                                                    </Box>
+
+                                                    {/* 🔴 BOTÓN ELIMINAR DETALLE */}
+                                                    <Tooltip title="Eliminar detalle">
+                                                      <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation(); // para que no abra el modal
+                                                          handleDeleteDetail(
+                                                            element.id,
+                                                            subElem.id,
+                                                            detail.id
+                                                          );
+                                                        }}
+                                                      >
+                                                        <DeleteIcon fontSize="small" />
+                                                      </IconButton>
+                                                    </Tooltip>
+                                                  </Box>
+
+                                                  {/* resto del contenido del detalle (descripción, chips, etc.) */}
+                                                  {detail.description && (
+                                                    <Typography
+                                                      variant="caption"
+                                                      color="text.secondary"
+                                                      sx={{
+                                                        display: "block",
+                                                        mb: 1,
+                                                      }}
+                                                    >
+                                                      {detail.description}
+                                                    </Typography>
+                                                  )}
+
+                                                  <Box
+                                                    sx={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      gap: 2,
+                                                      flexWrap: "wrap",
+                                                    }}
+                                                  >
+                                                    <Chip
+                                                      label={detail.dataType}
+                                                      size="small"
+                                                      sx={{ height: 22 }}
+                                                    />
+                                                    <Typography variant="body2">
+                                                      {formatDetailValue(
+                                                        detail
+                                                      )}
+                                                    </Typography>
+                                                  </Box>
+
+                                                  {detail.flags &&
+                                                    detail.flags.length > 0 && (
+                                                      <Box
+                                                        sx={{
+                                                          display: "flex",
+                                                          gap: 0.5,
+                                                          mt: 1,
+                                                          flexWrap: "wrap",
+                                                        }}
+                                                      >
+                                                        {detail.flags.map(
+                                                          (flag) => (
+                                                            <Chip
+                                                              key={flag.id}
+                                                              label={flag.name}
+                                                              size="small"
+                                                              icon={
+                                                                <FlagIcon />
+                                                              }
+                                                              sx={{
+                                                                bgcolor:
+                                                                  flag.color,
+                                                                color: "white",
+                                                                height: 20,
+                                                                fontSize:
+                                                                  "0.7rem",
+                                                              }}
+                                                            />
+                                                          )
+                                                        )}
+                                                      </Box>
+                                                    )}
+                                                </Box>
+                                              )
+                                            )}
+                                          </Box>
+                                        ) : (
+                                          <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{ textAlign: "center", py: 2 }}
+                                          >
+                                            No hay detalles. Haz clic en + para
+                                            agregar.
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    </Collapse>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ textAlign: "center", py: 3 }}
+                            >
+                              No hay sub-elementos. Haz clic en + para agregar.
+                            </Typography>
+                          )}
+                        </Box>
+                      </Collapse>
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: "center", py: 8 }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No hay elementos creados
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Haz clic en &quot;Crear Elemento&quot; para comenzar
+                  </Typography>
+                </Box>
+              )}
               {/* Details Display */}
               {selectedDetails.length > 0 ? (
                 <Box
@@ -995,10 +1722,7 @@ export default function ProjectCanvasPage() {
                     variant="body1"
                     color="text.secondary"
                     sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
-                  >
-                    No hay detalles seleccionados. Haz clic en "Agregar
-                    detalles" para comenzar.
-                  </Typography>
+                  ></Typography>
                 </Box>
               )}
             </Paper>
@@ -1051,13 +1775,43 @@ export default function ProjectCanvasPage() {
 
           setCurrentProject({
             ...currentProject,
-            visibility: updatedProject.visibility
+            visibility: updatedProject.visibility,
           });
           updateProject(projectId, { visibility: updatedProject.visibility });
         }}
       />
       */}
 
+      {/* Modales de creación de elementos / sub-elementos / detalles */}
+      <CreateElementModal
+        open={openCreateElement}
+        onClose={() => setOpenCreateElement(false)}
+        onSave={handleCreateElement}
+      />
+
+      <CreateSubElementModal
+        open={openCreateSubElement}
+        onClose={() => setOpenCreateSubElement(false)}
+        onSave={handleCreateSubElement}
+        elementName={
+          selectedElementIndex !== null
+            ? elements[selectedElementIndex]?.name
+            : ""
+        }
+      />
+
+      <CreateDetailModal
+        open={openCreateDetail}
+        onClose={() => setOpenCreateDetail(false)}
+        onSave={handleCreateDetail}
+        subElementName={
+          selectedElementIndex !== null && selectedSubElementIndex !== null
+            ? elements[selectedElementIndex]?.subElements?.[
+                selectedSubElementIndex
+              ]?.name
+            : ""
+        }
+      />
       <ProjectCollaborators
         open={openCollaborators}
         onClose={() => setOpenCollaborators(false)}
@@ -1083,16 +1837,115 @@ export default function ProjectCanvasPage() {
         maxWidth="lg"
         fullWidth
       >
+        <DialogTitle>Matriz de permisos</DialogTitle>
         <DialogContent>
-          <PermissionsMatrix />
+          <PermissionsMatrix project={currentProject} />
+        </DialogContent>
+      </Dialog>
+      {/* Modal: Editar Elemento */}
+      <Dialog
+        open={openEditElement}
+        onClose={(event, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setOpenEditElement(false);
+        }}
+        disableEscapeKeyDown
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Editar elemento</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {" "}
+          {/* <- espacio interno arriba */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              mt: 3,
+            }}
+          >
+            <TextField
+              label="Nombre del elemento"
+              value={editElementName}
+              onChange={(e) => setEditElementName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Descripción"
+              value={editElementDescription}
+              onChange={(e) => setEditElementDescription(e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              rows={3}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPermissionsMatrix(false)}>
-            Cerrar
+          <Button onClick={() => setOpenEditElement(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveElementEdit}
+            disabled={!editElementName.trim()}
+          >
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* 🔹 Modal: Editar Sub-elemento */}
+      <Dialog
+        open={openEditSubElement}
+        onClose={(event, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setOpenEditSubElement(false);
+        }}
+        disableEscapeKeyDown
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Editar sub-elemento</DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {" "}
+          {/* <- espacio interno arriba */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              mt: 3,
+            }}
+          >
+            <TextField
+              label="Nombre del sub-elemento"
+              value={editSubElemName}
+              onChange={(e) => setEditSubElemName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Descripción"
+              value={editSubElemDescription}
+              onChange={(e) => setEditSubElemDescription(e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              rows={3}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditSubElement(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSaveSubElementEdit}
+            disabled={!editSubElemName.trim()}
+          >
+            Guardar
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
-  
 }

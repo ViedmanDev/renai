@@ -23,7 +23,8 @@
 
 */
 .login-container {
-  width: min(96vw, 410px);
+  height: 710px;
+  width: 510px;
   margin: 0 auto;
   background-color: #fff;
   border-radius: 0.5rem;
@@ -144,6 +145,7 @@
 
 .forgot-pass-link {
   display: block;
+  width: 100%;
   text-align: center;
   margin-top: 1rem;
   margin-bottom: 1.5rem;
@@ -151,6 +153,13 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.signup-link {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+
 .title-login {
   text-align: center;
   padding: 2rem;
