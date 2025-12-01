@@ -529,11 +529,11 @@ export default function ProjectCanvasPage() {
   };
 
   const handleSaveProjectName = () => {
-    if (projectName.trim() && currentProject) {
-      const projectId = currentProject._id || currentProject.id;
-      updateProject(projectId, { name: projectName.trim() });
-      setIsEditingProjectName(false);
-    }
+    const newName = projectName.trim();
+    if (!currentProject || !newName) return;
+
+    handleEditProject({ name: newName });
+    setIsEditingProjectName(false);
   };
 
   const handleCancelEditProjectName = () => {
@@ -542,18 +542,64 @@ export default function ProjectCanvasPage() {
   };
 
   const handleSaveProjectDescription = () => {
-    if (currentProject) {
-      const projectId = currentProject._id || currentProject.id;
-      updateProject(projectId, {
-        description: projectDescription.trim(),
-      });
-      setIsEditingDescription(false);
-    }
+    const newDescription = projectDescription.trim();
+    if (!currentProject) return;
+
+    handleEditProject({ description: newDescription });
+    setIsEditingDescription(false);
   };
 
   const handleCancelEditProjectDescription = () => {
     setProjectDescription(currentProject?.description || "");
     setIsEditingDescription(false);
+  };
+
+  const handleEditProject = async (updates) => {
+    // Si no hay nada que actualizar, salimos
+    if (!updates || Object.keys(updates).length === 0) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId || projectId === "undefined") {
+      console.error("❌ ID inválido para editar:", projectId);
+      alert("Error: No se pudo identificar el proyecto");
+      return;
+    }
+
+    console.log("✏️ Editando proyecto:", projectId, "con:", updates);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "PATCH", // o "PUT" si tu API lo usa así
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const updatedProject = await res.json();
+        console.log("✅ Proyecto actualizado:", updatedProject);
+
+        // Actualizar lista de proyectos en el contexto
+        updateProject(projectId, updates);
+
+        // Actualizar currentProject en memoria
+        setCurrentProject((prev) =>
+          prev && (prev._id === projectId || prev.id === projectId)
+            ? { ...prev, ...updates }
+            : prev
+        );
+      } else {
+        const data = await res.json();
+        alert("Error al actualizar: " + (data.message || "Error desconocido"));
+      }
+    } catch (error) {
+      console.error("❌ Error editando proyecto:", error);
+      alert("Error de conexión al actualizar el proyecto");
+    }
   };
 
   const handleDeleteProject = async () => {
