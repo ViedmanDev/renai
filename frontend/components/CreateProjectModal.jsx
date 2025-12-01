@@ -42,6 +42,8 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import CloseIcon from "@mui/icons-material/Close";
+import { useProjects } from "@/contexts/ProjectContext";
 
 export default function CreateProjectModal({
   open,

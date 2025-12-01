@@ -7,6 +7,7 @@ import Link from "next/link";
 import "./login.css";
 
 export default function LoginPage() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
