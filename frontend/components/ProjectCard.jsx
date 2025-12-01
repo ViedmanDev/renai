@@ -1,9 +1,14 @@
-"use client"
+"use client";
 
-import { Card, CardContent, Typography, Button, Box } from "@mui/material"
-import AddIcon from "@mui/icons-material/Add"
+import { Card, CardContent, Typography, Button, Box } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
-export default function ProjectCard({ project, onView, onEdit, isNew = false }) {
+export default function ProjectCard({
+  project,
+  onView,
+  onEdit,
+  isNew = false,
+}) {
   if (isNew) {
     return (
       <Card
@@ -27,7 +32,7 @@ export default function ProjectCard({ project, onView, onEdit, isNew = false }) 
           </Typography>
         </Box>
       </Card>
-    )
+    );
   }
 
   return (
@@ -68,7 +73,12 @@ export default function ProjectCard({ project, onView, onEdit, isNew = false }) 
         <Typography variant="h6" gutterBottom>
           {project.name}
         </Typography>
-        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          gutterBottom
+        >
           {new Date(project.createdAt).toLocaleDateString()}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
@@ -77,10 +87,15 @@ export default function ProjectCard({ project, onView, onEdit, isNew = false }) 
       </CardContent>
 
       <Box sx={{ p: 2, display: "flex", gap: 1, justifyContent: "flex-end" }}>
-        <Button variant="outlined" size="small" onClick={() => onView(project)} sx={{ textTransform: "none" }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => onView(project)}
+          sx={{ textTransform: "none" }}
+        >
           Ver
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           size="small"
           onClick={() => onEdit(project)}
@@ -93,8 +108,8 @@ export default function ProjectCard({ project, onView, onEdit, isNew = false }) 
           }}
         >
           Editar
-        </Button>
+        </Button> */}
       </Box>
     </Card>
-  )
+  );
 }

@@ -747,7 +747,7 @@ export default function ProjectCanvasPage() {
               fontSize: { xs: "0.875rem", sm: "1rem" },
             }}
           >
-            {currentProject?.name || "Proyecto 1 Ejemplo Ejemplo"}
+            {currentProject?.name}
           </Typography>
           <Button
             variant="contained"
@@ -844,7 +844,7 @@ export default function ProjectCanvasPage() {
                       variant="h6"
                       sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}
                     >
-                      {currentProject?.name || "Proyecto demo"}
+                      {currentProject?.name}
                     </Typography>
                     <IconButton
                       size="small"
@@ -870,13 +870,13 @@ export default function ProjectCanvasPage() {
                 >
                   <TaskIcon fontSize="small" />
                 </IconButton>
-                <IconButton
+                {/* <IconButton
                   size="small"
                   onClick={() => setOpenTagManager(true)}
                   title="Gestionar etiquetas"
                 >
                   <SellIcon fontSize="small" />
-                </IconButton>
+                </IconButton> */}
               </Box>
               {/* Project Description */}
               <Box sx={{ mb: { xs: 2, sm: 3 }, textAlign: "center" }}>

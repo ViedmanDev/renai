@@ -43,13 +43,13 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
-export default function CreateProjectModal({ 
-  open, 
-  onClose, 
+export default function CreateProjectModal({
+  open,
+  onClose,
   onCreateProject,
-  selectedFolderId 
+  selectedFolderId,
 }) {
-  const router = useRouter()
+  const router = useRouter();
   // Estado para el nombre del proyecto
   const [projectName, setProjectName] = useState("");
   // Estado para la descripción del proyecto
@@ -73,10 +73,10 @@ export default function CreateProjectModal({
     if (!value || value.trim().length === 0) {
       return "El nombre del proyecto es requerido";
     }
-    if (value.trim().length < 3) {
-      return "El nombre debe tener al menos 3 caracteres";
+    if (value.trim().length < 5) {
+      return "El nombre debe tener al menos 5 caracteres";
     }
-    if (value.length > 50) {
+    if (value.length > 35) {
       return "El nombre no puede exceder 50 caracteres";
     }
     return "";
@@ -86,10 +86,10 @@ export default function CreateProjectModal({
   const handleNameChange = (e) => {
     const value = e.target.value;
     setProjectName(value);
-    
+
     // Validar en tiempo real
     const error = validateName(value);
-    setErrors(prev => ({ ...prev, name: error }));
+    setErrors((prev) => ({ ...prev, name: error }));
   };
 
   /**
@@ -116,7 +116,7 @@ export default function CreateProjectModal({
   const handleCreate = async (fromTemplate = false) => {
     const nameError = validateName(projectName);
     if (nameError) {
-      setErrors(prev => ({ ...prev, name: nameError }));
+      setErrors((prev) => ({ ...prev, name: nameError }));
       return;
     }
 
@@ -162,15 +162,15 @@ export default function CreateProjectModal({
 
         const projectId = newProject._id || newProject.id;
         if (projectId) {
-          console.log("🔀 Redirigiendo a:", `/project/${projectId}/details`);
-          router.push(`/project/${projectId}/details`);
+          console.log("🔀 Redirigiendo a:", `/project/${projectId}/canvas`);
+          router.push(`/project/${projectId}/canvas`);
         }
 
         // Llamar callback (opcional, para actualizar lista)
         if (onCreateProject) {
           onCreateProject(newProject);
         }
-        
+
         // Cerrar modal
         onClose();
       } else {
@@ -188,7 +188,10 @@ export default function CreateProjectModal({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={(event, reason) => {
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        onClose();
+      }}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -205,9 +208,7 @@ export default function CreateProjectModal({
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Crear Proyecto
         </Typography>
-        <IconButton>
-          <EditIcon />
-        </IconButton>
+        <IconButton></IconButton>
       </Box>
 
       <DialogContent>
