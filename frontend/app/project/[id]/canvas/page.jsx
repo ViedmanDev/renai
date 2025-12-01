@@ -58,6 +58,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -273,6 +274,73 @@ export default function ProjectCanvasPage() {
     updateProject(projectId, { elements: newElements });
     setOpenEditSubElement(false);
     setEditSubElemIndices({ elem: null, sub: null });
+  };
+
+  // Eliminar ELEMENTO
+  const handleDeleteElement = (elementId) => {
+    const ok = window.confirm("¿Eliminar este elemento y todo su contenido?");
+    if (!ok) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    setElements((prev) => {
+      const newElements = prev.filter((el) => el.id !== elementId);
+      if (projectId) {
+        updateProject(projectId, { elements: newElements });
+      }
+      return newElements;
+    });
+  };
+
+  // Eliminar SUBELEMENTO
+  const handleDeleteSubElement = (elementId, subElementId) => {
+    const ok = window.confirm("¿Eliminar este sub elemento y sus detalles?");
+    if (!ok) return;
+
+    const projectId = currentProject?._id || currentProject?.id;
+
+    setElements((prev) => {
+      const newElements = prev.map((el) =>
+        el.id === elementId
+          ? {
+              ...el,
+              subElements: (el.subElements || []).filter(
+                (sub) => sub.id !== subElementId
+              ),
+            }
+          : el
+      );
+
+      if (projectId) {
+        updateProject(projectId, { elements: newElements });
+      }
+
+      return newElements;
+    });
+  };
+
+  // Eliminar DETALLE
+  const handleDeleteDetail = (elementId, subElementId, detailId) => {
+    const ok = window.confirm("¿Eliminar este detalle?");
+    if (!ok) return;
+
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === elementId
+          ? {
+              ...el,
+              subElements: el.subElements.map((sub) =>
+                sub.id === subElementId
+                  ? {
+                      ...sub,
+                      details: sub.details.filter((d) => d.id !== detailId),
+                    }
+                  : sub
+              ),
+            }
+          : el
+      )
+    );
   };
 
   const handleDetailClick = (detail) => {
@@ -986,6 +1054,18 @@ export default function ProjectCanvasPage() {
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Eliminar elemento">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteElement(element.id);
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
 
                         <Tooltip title="Crear sub-elemento">
                           <IconButton
@@ -1072,29 +1152,53 @@ export default function ProjectCanvasPage() {
                                           </Typography>
                                         )}
                                       </Box>
-                                      {/* 🔹 BOTÓN EDITAR SUB-ELEMENTO AQUÍ */}
-                                      <Tooltip title="Editar sub-elemento">
-                                        <IconButton
-                                          size="small"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditSubElemIndices({
-                                              elem: elemIndex,
-                                              sub: subIndex,
-                                            });
-                                            setEditSubElemName(
-                                              subElem.name || ""
-                                            );
-                                            setEditSubElemDescription(
-                                              subElem.description || ""
-                                            );
-                                            setOpenEditSubElement(true);
-                                          }}
-                                          sx={{ mr: 1 }}
-                                        >
-                                          <EditIcon fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
+                                      {/* BOTONES EDITAR / ELIMINAR SUB-ELEMENTO */}
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 1,
+                                        }}
+                                      >
+                                        <Tooltip title="Editar sub-elemento">
+                                          <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditSubElemIndices({
+                                                elem: elemIndex,
+                                                sub: subIndex,
+                                              });
+                                              setEditSubElemName(
+                                                subElem.name || ""
+                                              );
+                                              setEditSubElemDescription(
+                                                subElem.description || ""
+                                              );
+                                              setOpenEditSubElement(true);
+                                            }}
+                                            sx={{ mr: 0.5 }}
+                                          >
+                                            <EditIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+
+                                        <Tooltip title="Eliminar sub-elemento">
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteSubElement(
+                                                element.id,
+                                                subElem.id
+                                              );
+                                            }}
+                                          >
+                                            <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Box>
                                       <Tooltip title="Crear detalle">
                                         <IconButton
                                           size="small"
@@ -1151,37 +1255,69 @@ export default function ProjectCanvasPage() {
                                                     handleDetailClick(detail)
                                                   }
                                                 >
+                                                  {/* CABECERA DEL DETALLE */}
                                                   <Box
                                                     sx={{
                                                       display: "flex",
                                                       alignItems: "center",
-                                                      gap: 2,
+                                                      justifyContent:
+                                                        "space-between",
                                                       mb: 1,
+                                                      gap: 1,
                                                     }}
                                                   >
-                                                    <DescriptionIcon
-                                                      fontSize="small"
-                                                      sx={{ color: "#6b7280" }}
-                                                    />
-                                                    <Typography
-                                                      variant="body2"
-                                                      fontWeight="500"
+                                                    <Box
+                                                      sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 1.5,
+                                                      }}
                                                     >
-                                                      {detail.name}
-                                                      {detail.required && (
-                                                        <Chip
-                                                          label="Requerido"
-                                                          size="small"
-                                                          color="error"
-                                                          sx={{
-                                                            ml: 1,
-                                                            height: 20,
-                                                          }}
-                                                        />
-                                                      )}
-                                                    </Typography>
+                                                      <DescriptionIcon
+                                                        fontSize="small"
+                                                        sx={{
+                                                          color: "#6b7280",
+                                                        }}
+                                                      />
+                                                      <Typography
+                                                        variant="body2"
+                                                        fontWeight="500"
+                                                      >
+                                                        {detail.name}
+                                                        {detail.required && (
+                                                          <Chip
+                                                            label="Requerido"
+                                                            size="small"
+                                                            color="error"
+                                                            sx={{
+                                                              ml: 1,
+                                                              height: 20,
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </Typography>
+                                                    </Box>
+
+                                                    {/* 🔴 BOTÓN ELIMINAR DETALLE */}
+                                                    <Tooltip title="Eliminar detalle">
+                                                      <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation(); // para que no abra el modal
+                                                          handleDeleteDetail(
+                                                            element.id,
+                                                            subElem.id,
+                                                            detail.id
+                                                          );
+                                                        }}
+                                                      >
+                                                        <DeleteIcon fontSize="small" />
+                                                      </IconButton>
+                                                    </Tooltip>
                                                   </Box>
 
+                                                  {/* resto del contenido del detalle (descripción, chips, etc.) */}
                                                   {detail.description && (
                                                     <Typography
                                                       variant="caption"
