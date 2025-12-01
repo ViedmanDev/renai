@@ -59,6 +59,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import exportarProyectoExcel  from "./exportExcel";
 
 export default function ProjectCanvasPage() {
   const router = useRouter();
@@ -795,20 +796,24 @@ export default function ProjectCanvasPage() {
           >
             {currentProject?.name}
           </Typography>
+
+          {/* usar boton para guardar datos como excel */}
           <Button
-            variant="contained"
-            sx={{
-              bgcolor: "#2c2c2c",
-              textTransform: "none",
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              px: { xs: 1.5, sm: 2 },
-              "&:hover": {
-                bgcolor: "#1a1a1a",
-              },
-            }}
-          >
-            Exportar como
-          </Button>
+          onClick={() => exportarProyectoExcel(currentProject)}
+          variant="contained"
+          sx={{
+            bgcolor: "#2c2c2c",
+            textTransform: "none",
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            px: { xs: 1.5, sm: 2 },
+            "&:hover": {
+              bgcolor: "#1a1a1a",
+            },
+          }}
+        >
+          Exportar como
+        </Button>
+
           <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
             <Avatar
               key={user?._id || user?.email || "no-user"}
