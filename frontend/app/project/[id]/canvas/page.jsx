@@ -705,12 +705,12 @@ export default function ProjectCanvasPage() {
             flexWrap: { xs: "wrap", sm: "nowrap" },
           }}
         >
-          <IconButton
+          {/* <IconButton
             onClick={() => router.push(`/project/${params.id}/details`)}
             size="small"
           >
             <ChevronLeftIcon />
-          </IconButton>
+          </IconButton> */}
           <IconButton
             size="small"
             onClick={() => setOpenAdminDrawer(true)}
