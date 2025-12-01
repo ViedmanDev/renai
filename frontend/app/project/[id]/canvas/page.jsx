@@ -1794,7 +1794,11 @@ export default function ProjectCanvasPage() {
       {/* Modal: Editar Elemento */}
       <Dialog
         open={openEditElement}
-        onClose={() => setOpenEditElement(false)}
+        onClose={(event, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setOpenEditElement(false);
+        }}
+        disableEscapeKeyDown
         maxWidth="sm"
         fullWidth
       >
@@ -1842,7 +1846,11 @@ export default function ProjectCanvasPage() {
       {/* 🔹 Modal: Editar Sub-elemento */}
       <Dialog
         open={openEditSubElement}
-        onClose={() => setOpenEditSubElement(false)}
+        onClose={(event, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+          setOpenEditSubElement(false);
+        }}
+        disableEscapeKeyDown
         maxWidth="sm"
         fullWidth
       >

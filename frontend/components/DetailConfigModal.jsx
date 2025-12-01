@@ -208,7 +208,10 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={(event, reason) => {
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        onClose();
+      }}
       maxWidth="md"
       fullWidth
       PaperProps={{

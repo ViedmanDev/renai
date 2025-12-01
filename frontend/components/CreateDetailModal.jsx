@@ -74,8 +74,8 @@ export default function CreateDetailModal({
         flags,
       });
       handleReset();
-      onClose();
     }
+    onClose();
   };
 
   const handleReset = () => {
@@ -188,7 +188,15 @@ export default function CreateDetailModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={(event, reason) => {
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        onClose();
+      }}
+      maxWidth="md"
+      fullWidth
+    >
       <DialogTitle>
         <Box
           sx={{

@@ -28,6 +28,10 @@ export default function CreateElementModal({ open, onClose, onSave }) {
       setDescription("");
       onClose();
     }
+    onClose();
+  };
+  const handleCancel = () => {
+    onClose();
   };
 
   const handleClose = () => {
@@ -37,7 +41,15 @@ export default function CreateElementModal({ open, onClose, onSave }) {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={(event, reason) => {
+        if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+        onClose();
+      }}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>
         <Box
           sx={{
