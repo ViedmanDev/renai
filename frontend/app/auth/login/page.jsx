@@ -7,7 +7,7 @@ import Link from "next/link";
 import "./login.css";
 
 export default function LoginPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -15,14 +15,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const redirectTo = searchParams.get("redirect") || "/";
 
   // Estados de error
   const [errors, setErrors] = useState({
     email: "",
     password: "",
-    general: ""
+    general: "",
   });
 
   // Validar email en tiempo real
@@ -61,10 +61,10 @@ export default function LoginPage() {
 
     // Validar solo si el campo ya fue tocado
     if (errors.email || value) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         email: validateEmail(value),
-        general: ""
+        general: "",
       }));
     }
   };
@@ -76,10 +76,10 @@ export default function LoginPage() {
 
     // Validar solo si el campo ya fue tocado
     if (errors.password || value) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         password: validatePassword(value),
-        general: ""
+        general: "",
       }));
     }
   };
@@ -92,7 +92,7 @@ export default function LoginPage() {
     setErrors({
       email: emailError,
       password: passwordError,
-      general: ""
+      general: "",
     });
 
     return !emailError && !passwordError;
@@ -101,42 +101,38 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Validar formulario antes de enviar
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setErrors({ email: "", password: "", general: "" });
 
-    const result = await login(email, password);
+    try {
+      const result = await login(email, password);
 
-    if (result.success) {
-      router.push(redirectTo);
-    } else {
-      // Manejar errores específicos del backend
-      const errorMessage = result.message || "Error al iniciar sesión";
-
-      // Detectar tipo de error
-      if (errorMessage.toLowerCase().includes("usuario no encontrado") ||
-          errorMessage.toLowerCase().includes("no encontrado")) {
-        setErrors(prev => ({
-          ...prev,
-          email: "No existe una cuenta con este email"
-        }));
-      } else if (errorMessage.toLowerCase().includes("contraseña") ||
-                 errorMessage.toLowerCase().includes("incorrecta")) {
-        setErrors(prev => ({
-          ...prev,
-          password: "La contraseña es incorrecta"
-        }));
+      if (result.success) {
+        router.push(redirectTo);
       } else {
-        // Error general (problemas de conexión, servidor, etc.)
-        setErrors(prev => ({
-          ...prev,
-          general: errorMessage
-        }));
+        const errorMessage = result.message || "Error al iniciar sesión";
+        if (errorMessage.toLowerCase().includes("usuario no encontrado")) {
+          setErrors((prev) => ({
+            ...prev,
+            email: "No existe una cuenta con este email",
+          }));
+        } else if (errorMessage.toLowerCase().includes("contraseña")) {
+          setErrors((prev) => ({
+            ...prev,
+            password: "La contraseña es incorrecta",
+          }));
+        } else {
+          setErrors((prev) => ({ ...prev, general: errorMessage }));
+        }
       }
+    } catch (err) {
+      console.error(err);
+      setErrors((prev) => ({
+        ...prev,
+        general: "Error de conexión con el servidor",
+      }));
     }
 
     setLoading(false);
@@ -147,17 +143,18 @@ export default function LoginPage() {
       <h2 className="form-title">Login</h2>
 
       <form className="login-form" onSubmit={handleLogin} noValidate>
-
         {/* Error general */}
         {errors.general && (
-          <div style={{
-            backgroundColor: "#fee",
-            border: "1px solid #fcc",
-            borderRadius: "8px",
-            padding: "12px",
-            marginBottom: "16px",
-            color: "#c33"
-          }}>
+          <div
+            style={{
+              backgroundColor: "#fee",
+              border: "1px solid #fcc",
+              borderRadius: "8px",
+              padding: "12px",
+              marginBottom: "16px",
+              color: "#c33",
+            }}
+          >
             <strong>Error:</strong> {errors.general}
           </div>
         )}
@@ -173,18 +170,20 @@ export default function LoginPage() {
             onChange={handleEmailChange}
             disabled={loading}
             style={{
-              borderColor: errors.email ? "#f44336" : undefined
+              borderColor: errors.email ? "#f44336" : undefined,
             }}
           />
           <i className="material-symbols-rounded">mail</i>
         </div>
         {errors.email && (
-          <div style={{
-            color: "#f44336",
-            fontSize: "13px",
-            marginTop: "4px",
-            marginBottom: "12px"
-          }}>
+          <div
+            style={{
+              color: "#f44336",
+              fontSize: "13px",
+              marginTop: "4px",
+              marginBottom: "12px",
+            }}
+          >
             {errors.email}
           </div>
         )}
@@ -199,18 +198,20 @@ export default function LoginPage() {
             onChange={handlePasswordChange}
             disabled={loading}
             style={{
-              borderColor: errors.password ? "#f44336" : undefined
+              borderColor: errors.password ? "#f44336" : undefined,
             }}
           />
           <i className="material-symbols-rounded">lock</i>
         </div>
         {errors.password && (
-          <div style={{
-            color: "#f44336",
-            fontSize: "13px",
-            marginTop: "4px",
-            marginBottom: "12px"
-          }}>
+          <div
+            style={{
+              color: "#f44336",
+              fontSize: "13px",
+              marginTop: "4px",
+              marginBottom: "12px",
+            }}
+          >
             {errors.password}
           </div>
         )}
@@ -220,7 +221,7 @@ export default function LoginPage() {
           type="submit"
           disabled={loading}
           style={{
-            marginTop: "16px"
+            marginTop: "16px",
           }}
         >
           {loading ? "Cargando..." : "Iniciar sesión"}
@@ -259,7 +260,7 @@ export default function LoginPage() {
         >
           <img src="/google-icon.png" alt="" className="social-icon" />
           Continue con Google
-          </button>
+        </button>
       </div>
     </div>
   );
