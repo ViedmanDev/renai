@@ -75,7 +75,6 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   const [productName, setProductName] = useState("");
   const [productIndicator, setProductIndicator] = useState("");
 
-
   // ✅ Cargar banderas del sistema cuando se abre el modal
   useEffect(() => {
     if (open) {
@@ -93,23 +92,23 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
         const tags = await response.json();
 
         // Normalizar formato de tags
-        const normalizedFlags = tags.map(tag => ({
+        const normalizedFlags = tags.map((tag) => ({
           id: tag._id || tag.id,
           name: tag.name,
           color: tag.color,
         }));
 
         setSystemFlags(normalizedFlags);
-        console.log('✅ Banderas cargadas:', normalizedFlags.length);
+        console.log("✅ Banderas cargadas:", normalizedFlags.length);
       } else {
-        console.error('❌ Error al cargar banderas:', response.status);
+        console.error("❌ Error al cargar banderas:", response.status);
       }
     } catch (error) {
-      console.error('❌ Error de red al cargar banderas:', error);
+      console.error("❌ Error de red al cargar banderas:", error);
     } finally {
       setLoadingFlags(false);
     }
-  }
+  };
   useEffect(() => {
     if (detail && open) {
       console.log("Detail que entra al modal: ", detail);
@@ -176,8 +175,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   }, [detail, open]);
 
   const handleSave = () => {
-    const isBooleanDetail = detail.dataType === "boolean" || detail.id === "si_no";
-    const isTextField = detail.dataType === "text" || detail.id === "texto" || detail.id === "campo";
+    const isBooleanDetail =
+      detail.dataType === "boolean" || detail.id === "si_no";
+    const isTextField =
+      detail.dataType === "text" ||
+      detail.id === "texto" ||
+      detail.id === "campo";
 
     const config = {
       ...detail,
@@ -210,7 +213,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
       productIndicator: productIndicator,
     };
 
-    console.log('💾 Guardando config completa:', config);
+    console.log("💾 Guardando config completa:", config);
     onSave(config);
     handleClose();
   };
@@ -290,7 +293,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
             }}
           >
             {/* Columna 1: Nombre, decimales y valores según tipo */}
-            
+
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Ingresa nombre del campo
@@ -709,12 +712,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
             {/* Columna 2: Banderas */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
-                Etiquetas
+                Banderas
               </Typography>
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Buscar etiquetas"
+                placeholder="Buscar banderas"
                 value={searchFlag}
                 onChange={(e) => setSearchFlag(e.target.value)}
                 InputProps={{
@@ -767,7 +770,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 display="block"
                 gutterBottom
               >
-                Etiquetas seleccionadas
+                Banderas seleccionadas
               </Typography>
               <Box
                 sx={{
@@ -796,7 +799,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                   ))
                 ) : (
                   <Typography variant="caption" color="text.secondary">
-                    No hay etiquetas seleccionadas
+                    No hay banderas seleccionadas
                   </Typography>
                 )}
               </Box>
@@ -833,8 +836,12 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                   />
                 ))}
                 {filteredFlags.length > 7 && (
-                  < Typography variant="caption" color="text.secondary" sx={{ width: '100%', textAlign: 'center', mt: 1 }}>
-                +{filteredFlags.length - 7} más disponibles
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ width: "100%", textAlign: "center", mt: 1 }}
+                  >
+                    +{filteredFlags.length - 7} más disponibles
                   </Typography>
                 )}
               </Box>

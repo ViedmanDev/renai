@@ -81,19 +81,22 @@ export default function CreateDetailModal({
         const tags = await response.json();
 
         // Normalizar formato
-        const normalizedFlags = tags.map(tag => ({
+        const normalizedFlags = tags.map((tag) => ({
           id: tag._id || tag.id,
           name: tag.name,
           color: tag.color,
         }));
 
         setSystemFlags(normalizedFlags);
-        console.log('✅ Banderas cargadas en modal de creación:', normalizedFlags.length);
+        console.log(
+          "✅ Banderas cargadas en modal de creación:",
+          normalizedFlags.length
+        );
       } else {
-        console.error('❌ Error al cargar banderas:', response.status);
+        console.error("❌ Error al cargar banderas:", response.status);
       }
     } catch (error) {
-      console.error('❌ Error de red al cargar banderas:', error);
+      console.error("❌ Error de red al cargar banderas:", error);
     } finally {
       setLoadingFlags(false);
     }
@@ -106,10 +109,7 @@ export default function CreateDetailModal({
         description: description.trim(),
         required,
         dataType,
-        currencyType:
-          dataType === "currency" || dataType === "number"
-            ? currencyType
-            : undefined,
+        currencyType: dataType === "currency" ? currencyType : undefined,
         value: value || undefined,
         flags,
       });
@@ -147,30 +147,19 @@ export default function CreateDetailModal({
         );
       case "number":
         return (
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Tipo de moneda</InputLabel>
-              <Select
-                value={currencyType}
-                onChange={(e) => setCurrencyType(e.target.value)}
-                label="Tipo de moneda"
-              >
-                {CURRENCY_TYPES.map((curr) => (
-                  <MenuItem key={curr.value} value={curr.value}>
-                    {curr.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              label="Valor"
-              type="number"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="0"
-            />
-          </Box>
+          <TextField
+            fullWidth
+            label="Valor (número entero)"
+            type="number"
+            value={value}
+            onChange={(e) => {
+              // Solo permitir enteros
+              const soloEnteros = e.target.value.replace(/[^0-9-]/g, "");
+              setValue(soloEnteros);
+            }}
+            inputProps={{ step: 1 }}
+            placeholder="0"
+          />
         );
       case "currency":
         return (
@@ -273,7 +262,7 @@ export default function CreateDetailModal({
             rows={2}
           />
 
-          <FormControlLabel
+          {/* <FormControlLabel
             control={
               <Checkbox
                 checked={required}
@@ -281,7 +270,7 @@ export default function CreateDetailModal({
               />
             }
             label="Campo requerido"
-          />
+          /> */}
 
           <FormControl fullWidth>
             <InputLabel>Tipo de dato</InputLabel>
