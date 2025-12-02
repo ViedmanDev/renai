@@ -10,12 +10,14 @@ import { Project, ProjectDocument, ProjectRole, ProjectPermission } from '../sch
 import { User, UserDocument } from '../schemas/user.schema';
 import * as crypto from 'crypto';
 import { FieldsService } from '../fields/fields.service';
+import { Group, GroupDocument } from '../schemas/group.schema';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
     private fieldsService: FieldsService,
   ) {}
 
@@ -56,16 +58,68 @@ export class ProjectsService {
    * Obtener todos los proyectos de un usuario
    */
   async findUserProjects(userId: string) {
-    return this.projectModel
-      .find({
-        $or: [
-          { ownerId: new Types.ObjectId(userId) },
-          { 'permissions.userId': new Types.ObjectId(userId) },
-        ],
-      })
-      .sort({ order: 1, createdAt: -1 })
-      .populate('ownerId', 'name email picture')
-      .exec();
+    try {
+      console.log('🔍 Buscando proyectos para userId:', userId);
+
+      // 1. Proyectos donde el usuario es owner
+      const ownedProjects = await this.projectModel
+        .find({ ownerId: new Types.ObjectId(userId) })
+        .sort({ order: 1, createdAt: -1 })
+        .populate('ownerId', 'name email picture')
+        .exec();
+
+      console.log('📦 Proyectos propios:', ownedProjects.length);
+
+      // 2. Proyectos donde el usuario es colaborador directo
+      const collaboratorProjects = await this.projectModel
+        .find({ 'permissions.userId': new Types.ObjectId(userId) })
+        .sort({ order: 1, createdAt: -1 })
+        .populate('ownerId', 'name email picture')
+        .exec();
+
+      console.log('🤝 Proyectos como colaborador directo:', collaboratorProjects.length);
+
+      // 3. ✅ NUEVO: Encontrar grupos donde el usuario es miembro
+      const userGroups = await this.groupModel
+        .find({ 'members.userId': new Types.ObjectId(userId) })
+        .select('_id')
+        .exec();
+
+      const userGroupIds = userGroups.map(group => group._id);
+
+      console.log('👥 Grupos del usuario:', userGroupIds.length, userGroupIds);
+
+      // 4. ✅ NUEVO: Proyectos donde alguno de los grupos del usuario tiene acceso
+      let groupProjects: ProjectDocument[] = [];
+      if (userGroupIds.length > 0) {
+        groupProjects = await this.projectModel
+          .find({ 'groupPermissions.groupId': { $in: userGroupIds } })
+          .sort({ order: 1, createdAt: -1 })
+          .populate('ownerId', 'name email picture')
+          .exec();
+
+        console.log('🔐 Proyectos por grupos:', groupProjects.length);
+      }
+
+      // 5. Combinar todos los proyectos y eliminar duplicados
+      const allProjects = [
+        ...ownedProjects,
+        ...collaboratorProjects,
+        ...groupProjects,
+      ];
+
+      // Eliminar duplicados por _id
+      const uniqueProjects = Array.from(
+        new Map(allProjects.map(project => [project._id.toString(), project])).values()
+      );
+
+      console.log('✅ Total de proyectos únicos:', uniqueProjects.length);
+
+      return uniqueProjects;
+    } catch (error) {
+      console.error('❌ Error en findUserProjects:', error);
+      throw error;
+    }
   }
 
   /**

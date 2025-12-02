@@ -6,12 +6,14 @@ import { Project, ProjectSchema } from '../schemas/project.schema';
 import { FieldsModule } from '../fields/fields.module';
 import { User, UserSchema } from '../schemas/user.schema';
 import { ProjectsPermissionsModule } from './projects-permissions.module';
+import { Group, GroupSchema } from '../schemas/group.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Project.name, schema: ProjectSchema },
       { name: User.name, schema: UserSchema },
+      { name: Group.name, schema: GroupSchema },
     ]),
     FieldsModule,
     ProjectsPermissionsModule,
