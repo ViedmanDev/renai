@@ -104,11 +104,11 @@ export default function TagManager() {
       if (!response.ok) {
         const text = await response.text();
         console.error(
-          "❌ Error al cargar las etiquetas:",
+          "❌ Error al cargar las banderas:",
           response.status,
           text
         );
-        throw new Error("Error al cargar las etiquetas");
+        throw new Error("Error al cargar las banderas");
       }
 
       const result = await response.json();
@@ -127,8 +127,8 @@ export default function TagManager() {
 
       setTags(normalizedTags);
     } catch (error) {
-      console.error("Error al cargar etiquetas:", error);
-      showSnackbar("Error de conexión al cargar etiquetas", "error");
+      console.error("Error al cargar banderas:", error);
+      showSnackbar("Error de conexión al cargar banderas", "error");
     } finally {
       setLoading(false);
     }
@@ -181,7 +181,7 @@ export default function TagManager() {
         );
 
         if (!response.ok) {
-          throw new Error("Error al actualizar la etiqueta");
+          throw new Error("Error al actualizar la bandera");
         }
 
         const result = await response.json();
@@ -198,7 +198,7 @@ export default function TagManager() {
               : t
           )
         );
-        showSnackbar("Etiqueta actualizada correctamente");
+        showSnackbar("Bandera actualizada correctamente");
       } else {
         // Crear nueva etiqueta
         const response = await fetch(`${API_URL}${API_ENDPOINTS.tags.create}`, {
@@ -214,7 +214,7 @@ export default function TagManager() {
 
         if (!response.ok) {
           console.log("CREACION DE TAGGG", response);
-          throw new Error("Error al crear la etiquetaaaaaaa");
+          throw new Error("Error al crear la bandera");
         }
 
         const result = await response.json();
@@ -229,7 +229,7 @@ export default function TagManager() {
         };
 
         setTags([...tags, newTag]);
-        showSnackbar("Etiqueta creada correctamente");
+        showSnackbar("Bandera creada correctamente");
       }
 
       setOpenDialog(false);
@@ -237,7 +237,7 @@ export default function TagManager() {
       setTagColor(TAG_COLORS[0].value);
     } catch (error) {
       console.error("Error al guardar etiquetaaaaaaa:", error);
-      showSnackbar(error.message || "Error al guardar la etiqueta", "error");
+      showSnackbar(error.message || "Error al guardar la bandera", "error");
     }
   };
 
@@ -245,7 +245,7 @@ export default function TagManager() {
    * Elimina una etiqueta
    */
   const handleDeleteTag = async (tagId) => {
-    if (!confirm("¿Estás seguro de eliminar esta etiqueta?")) return;
+    if (!confirm("¿Estás seguro de eliminar esta bandera?")) return;
 
     try {
       const response = await fetch(
@@ -259,14 +259,14 @@ export default function TagManager() {
       );
 
       if (!response.ok) {
-        throw new Error("Error al eliminar la etiqueta");
+        throw new Error("Error al eliminar la bandera");
       }
 
       setTags(tags.filter((t) => t.id !== tagId));
-      showSnackbar("Etiqueta eliminada correctamente");
+      showSnackbar("Bandera eliminada correctamente");
     } catch (error) {
-      console.error("Error al eliminar etiqueta:", error);
-      showSnackbar(error.message || "Error al eliminar la etiqueta", "error");
+      console.error("Error al eliminar bandera:", error);
+      showSnackbar(error.message || "Error al eliminar la bandera", "error");
     }
   };
 
@@ -287,14 +287,14 @@ export default function TagManager() {
   return (
     <Box className="tag-manager">
       <Box className="tag-manager__header">
-        <Typography variant="h6">Etiquetas del Sistema</Typography>
+        <Typography variant="h6">Banderas del Sistema</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
           className="tag-manager__add-button"
         >
-          Nueva Etiqueta
+          Nueva Bandera
         </Button>
       </Box>
 
@@ -351,12 +351,12 @@ export default function TagManager() {
         fullWidth
       >
         <DialogTitle>
-          {editingTag ? "Editar Etiqueta" : "Nueva Etiqueta"}
+          {editingTag ? "Editar Bandera" : "Nueva Bandera"}
         </DialogTitle>
         <DialogContent>
           <Box className="tag-manager__dialog-content">
             <TextField
-              label="Nombre de la etiqueta"
+              label="Nombre de la bandera"
               value={tagName}
               onChange={(e) => setTagName(e.target.value)}
               fullWidth

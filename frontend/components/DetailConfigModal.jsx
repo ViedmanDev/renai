@@ -49,13 +49,18 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { PREDEFINED_FLAGS } from "@/constants/detailTypes";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 export default function DetailConfigModal({ open, onClose, detail, onSave }) {
+  //Estado para banderas desde API
+  const [systemFlags, setSystemFlags] = useState([]);
+  const [loadingFlags, setLoadingFlags] = useState(false);
   // Estados para configuración del detalle
   const [fieldName, setFieldName] = useState("");
   const [description, setDescription] = useState("");
   const [decimals, setDecimals] = useState(2);
   const [selectedFlags, setSelectedFlags] = useState([]);
-  const [privacy, setPrivacy] = useState("grupo");
+  //const [privacy, setPrivacy] = useState("grupo");
   const [searchFlag, setSearchFlag] = useState("");
   const [initialValue, setInitialValue] = useState("");
   const [dateValue, setDateValue] = useState("");
@@ -70,6 +75,40 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   const [productName, setProductName] = useState("");
   const [productIndicator, setProductIndicator] = useState("");
 
+  // ✅ Cargar banderas del sistema cuando se abre el modal
+  useEffect(() => {
+    if (open) {
+      fetchSystemFlags();
+    }
+  }, [open]);
+
+  // ✅ Función para cargar banderas desde el backend
+  const fetchSystemFlags = async () => {
+    try {
+      setLoadingFlags(true);
+      const response = await fetch(`${API_URL}/tags`);
+
+      if (response.ok) {
+        const tags = await response.json();
+
+        // Normalizar formato de tags
+        const normalizedFlags = tags.map((tag) => ({
+          id: tag._id || tag.id,
+          name: tag.name,
+          color: tag.color,
+        }));
+
+        setSystemFlags(normalizedFlags);
+        console.log("✅ Banderas cargadas:", normalizedFlags.length);
+      } else {
+        console.error("❌ Error al cargar banderas:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error de red al cargar banderas:", error);
+    } finally {
+      setLoadingFlags(false);
+    }
+  };
   useEffect(() => {
     if (detail && open) {
       console.log("Detail que entra al modal: ", detail);
@@ -125,7 +164,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
       // Otros campos
       setDecimals(detail.decimals || 2);
       setSelectedFlags(detail.flags || []);
-      setPrivacy(detail.privacy || "grupo");
+      //setPrivacy(detail.privacy || "grupo");
       setAttachments(detail.attachments || []);
       setSelectedList(detail.selectedList || "");
       setInternalNote(detail.internalNote || "");
@@ -138,17 +177,29 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   const handleSave = () => {
     const isBooleanDetail =
       detail.dataType === "boolean" || detail.id === "si_no";
+    const isTextField =
+      detail.dataType === "text" ||
+      detail.id === "texto" ||
+      detail.id === "campo";
+
     const config = {
       ...detail,
+      // Actualizar el nombre del detalle
+      name: fieldName || detail.name,
       fieldName,
       description,
       decimals,
       flags: selectedFlags,
-      privacy,
-      value: isBooleanDetail ? booleanValue : initialValue,
+
+      // VALOR PRINCIPAL según el tipo de campo
+      value: (() => {
+        if (isBooleanDetail) return booleanValue;
+        if (isTextField) return textValue;
+        return initialValue;
+      })(),
+
+      // Valores específicos por tipo
       initialValue: isBooleanDetail ? undefined : initialValue,
-      value: initialValue,
-      initialValue,
       date: dateValue,
       startDate: startDate,
       endDate: endDate,
@@ -161,6 +212,8 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
       productName: productName,
       productIndicator: productIndicator,
     };
+
+    console.log("💾 Guardando config completa:", config);
     onSave(config);
     handleClose();
   };
@@ -170,7 +223,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
     setDescription("");
     setDecimals(2);
     setSelectedFlags([]);
-    setPrivacy("grupo");
+    //setPrivacy("grupo");
     setSearchFlag("");
     setInitialValue("");
     setDateValue("");
@@ -199,7 +252,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
   };
 
   // Filtrar banderas según búsqueda
-  const filteredFlags = PREDEFINED_FLAGS.filter((flag) =>
+  const filteredFlags = systemFlags.filter((flag) =>
     flag.name.toLowerCase().includes(searchFlag.toLowerCase())
   );
 
@@ -240,6 +293,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
             }}
           >
             {/* Columna 1: Nombre, decimales y valores según tipo */}
+
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Ingresa nombre del campo
@@ -253,7 +307,6 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 sx={{ mb: 2 }}
               />
 
-              {/* Descripción del campo */}
               <Typography variant="subtitle2" gutterBottom>
                 Descripción del campo
               </Typography>
@@ -267,8 +320,6 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 placeholder="Texto que se muestra debajo del nombre"
                 sx={{ mb: 3 }}
               />
-
-              {/* Ruta crítica (solo por id viejo) */}
               {detail.id === "ruta_critica" && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
@@ -759,7 +810,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                 display="block"
                 sx={{ mt: 2, mb: 1 }}
               >
-                Disponibles
+                Disponibles ({Math.min(filteredFlags.length - 2, 5)})
               </Typography>
               <Box
                 sx={{
@@ -768,7 +819,7 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                   gap: 1,
                 }}
               >
-                {filteredFlags.slice(2).map((flag) => (
+                {filteredFlags.slice(2, 7).map((flag) => (
                   <Chip
                     key={flag.id}
                     label={flag.name}
@@ -784,43 +835,15 @@ export default function DetailConfigModal({ open, onClose, detail, onSave }) {
                     }}
                   />
                 ))}
-              </Box>
-            </Box>
-
-            {/* Columna 3: Privacidad */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Privacidad del campo
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                sx={{ mb: 2 }}
-              >
-                Elige quién verá el campo
-              </Typography>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {["entidad", "organismo", "grupo", "personal"].map((option) => (
-                  <Button
-                    key={option}
-                    variant={privacy === option ? "contained" : "outlined"}
-                    onClick={() => setPrivacy(option)}
-                    sx={{
-                      textTransform: "capitalize",
-                      justifyContent: "flex-start",
-                      bgcolor: privacy === option ? "#e0e0e0" : "transparent",
-                      color: "text.primary",
-                      borderColor: "#e0e0e0",
-                      "&:hover": {
-                        bgcolor: privacy === option ? "#d0d0d0" : "#f5f5f5",
-                      },
-                    }}
+                {filteredFlags.length > 7 && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ width: "100%", textAlign: "center", mt: 1 }}
                   >
-                    {option}
-                  </Button>
-                ))}
+                    +{filteredFlags.length - 7} más disponibles
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Box>
