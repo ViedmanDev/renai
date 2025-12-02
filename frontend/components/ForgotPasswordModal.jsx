@@ -111,9 +111,6 @@ export default function ForgotPasswordModal({ open, onClose }) {
             <Typography variant="h6" gutterBottom>
               ¡Correo enviado!
             </Typography>
-            {/* <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Revisa tu consola del navegador para obtener el enlace de recuperación.
-            </Typography> */}
             <Typography variant="caption" color="text.secondary">
               El enlace expira en 1 hora.
             </Typography>
