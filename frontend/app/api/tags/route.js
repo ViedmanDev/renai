@@ -82,6 +82,7 @@ export async function POST(request) {
 
     const createdTag = {
       id: result.insertedId.toString(),
+
       _id: result.insertedId.toString(),
       name: name.trim(),
       color,
