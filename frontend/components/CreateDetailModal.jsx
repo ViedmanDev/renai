@@ -1,5 +1,5 @@
 "use client";
-
+import { useEffect } from "react";
 import { useState } from "react";
 import {
   Dialog,
@@ -21,6 +21,8 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import FlagIcon from "@mui/icons-material/Flag";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const PREDEFINED_FLAGS = [
   { id: "1", name: "Alta prioridad", color: "#ef4444" },
@@ -51,6 +53,9 @@ export default function CreateDetailModal({
   onSave,
   subElementName,
 }) {
+  const [systemFlags, setSystemFlags] = useState([]);
+  const [loadingFlags, setLoadingFlags] = useState(false);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [required, setRequired] = useState(false);
@@ -58,6 +63,41 @@ export default function CreateDetailModal({
   const [currencyType, setCurrencyType] = useState("COP");
   const [value, setValue] = useState("");
   const [flags, setFlags] = useState([]);
+
+  //Cargar banderas cuando se abre el modal
+  useEffect(() => {
+    if (open) {
+      fetchSystemFlags();
+    }
+  }, [open]);
+
+  // Función para cargar banderas desde el backend
+  const fetchSystemFlags = async () => {
+    try {
+      setLoadingFlags(true);
+      const response = await fetch(`${API_URL}/tags`);
+
+      if (response.ok) {
+        const tags = await response.json();
+
+        // Normalizar formato
+        const normalizedFlags = tags.map(tag => ({
+          id: tag._id || tag.id,
+          name: tag.name,
+          color: tag.color,
+        }));
+
+        setSystemFlags(normalizedFlags);
+        console.log('✅ Banderas cargadas en modal de creación:', normalizedFlags.length);
+      } else {
+        console.error('❌ Error al cargar banderas:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error de red al cargar banderas:', error);
+    } finally {
+      setLoadingFlags(false);
+    }
+  };
 
   const handleSave = () => {
     if (name.trim()) {
@@ -261,15 +301,15 @@ export default function CreateDetailModal({
           {renderValueField()}
 
           <Box>
-            <InputLabel sx={{ mb: 1 }}>Banderas (opcional)</InputLabel>
+            <InputLabel sx={{ mb: 1 }}>Etiquetas (opcional)</InputLabel>
             <Autocomplete
               multiple
-              options={PREDEFINED_FLAGS}
+              options={systemFlags}
               getOptionLabel={(option) => option.name}
               value={flags}
               onChange={(e, newValue) => setFlags(newValue)}
               renderInput={(params) => (
-                <TextField {...params} placeholder="Selecciona banderas" />
+                <TextField {...params} placeholder="Selecciona etiquetas" />
               )}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
@@ -282,6 +322,7 @@ export default function CreateDetailModal({
                   />
                 ))
               }
+              noOptionsText="No hay etiquetas disponibles. Créalas en el Panel Administrativo."
             />
           </Box>
         </Box>
