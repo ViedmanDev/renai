@@ -14,10 +14,12 @@
  */
 
 // URL base de la API - Se obtiene de variables de entorno
-export const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api"
+export const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 // URL para archivos subidos
-export const UPLOAD_URL = process.env.REACT_APP_UPLOAD_URL || "http://localhost:5000/uploads"
+export const UPLOAD_URL =
+  process.env.REACT_APP_UPLOAD_URL || "http://localhost:5000/uploads";
 
 /**
  * ENDPOINTS DE LA API
@@ -62,7 +64,7 @@ export const API_ENDPOINTS = {
 
   // Endpoint de Upload
   upload: "/upload", // POST - Subir archivos (imágenes)
-}
+};
 
 /**
  * CONFIGURACIÓN DE HEADERS
@@ -71,37 +73,37 @@ export const API_ENDPOINTS = {
 export const getHeaders = () => {
   const headers = {
     "Content-Type": "application/json",
-  }
+  };
 
   // Si hay token de autenticación, agregarlo
-  const token = localStorage.getItem("authToken")
+  const token = localStorage.getItem("authToken");
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return headers
-}
+  return headers;
+};
 
 /**
  * CONFIGURACIÓN DE HEADERS PARA MULTIPART (archivos)
  */
 export const getMultipartHeaders = () => {
-  const headers = {}
+  const headers = {};
 
   // No establecer Content-Type para multipart, el navegador lo hace automáticamente
-  const token = localStorage.getItem("authToken")
+  const token = localStorage.getItem("authToken");
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return headers
-}
+  return headers;
+};
 
 /**
  * TIMEOUT DE REQUESTS
  * Tiempo máximo de espera para una request (en milisegundos)
  */
-export const REQUEST_TIMEOUT = 30000 // 30 segundos
+export const REQUEST_TIMEOUT = 30000; // 30 segundos
 
 /**
  * CONFIGURACIÓN DE RETRY
@@ -111,4 +113,4 @@ export const RETRY_CONFIG = {
   maxRetries: 3, // Número máximo de reintentos
   retryDelay: 1000, // Delay entre reintentos (ms)
   retryOn: [408, 500, 502, 503, 504], // Códigos de error que activan retry
-}
+};

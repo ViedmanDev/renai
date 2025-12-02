@@ -796,6 +796,7 @@ export default function ProjectCanvasPage() {
             {currentProject?.name}
           </Typography>
           <Button
+            onClick={() => alert("exportaaaar")}
             variant="contained"
             sx={{
               bgcolor: "#2c2c2c",
@@ -1739,6 +1740,7 @@ export default function ProjectCanvasPage() {
       <AdminDrawer
         open={openAdminDrawer}
         onClose={() => setOpenAdminDrawer(false)}
+        projectId={currentProject?._id || currentProject?.id}
       />
 
       {/* Task Manager Dialog */}

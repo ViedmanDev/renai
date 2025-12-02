@@ -5,6 +5,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   UsePipes,
@@ -39,7 +40,7 @@ export class TagsController {
     }
   }
 
-  @Patch(':id')
+  @Put(':id')
   async update(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {
     try {
       return await this.tagsService.update(id, updateTagDto);
