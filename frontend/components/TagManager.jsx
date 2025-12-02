@@ -45,6 +45,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 // Para Next.js, las rutas API son relativas
 const API_BASE = "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 const API_ENDPOINTS = {
   tags: {
     list: "/tags",
@@ -60,7 +62,7 @@ const TAG_COLORS = [
   { name: "Rojo", value: "#ef5350" },
   { name: "Rosa", value: "#ec407a" },
   { name: "Púrpura", value: "#ab47bc" },
-  { name: "Azul", value: "#42a5f5" },
+  { name: "azul", value: "#42a5f5" },
   { name: "Verde", value: "#66bb6a" },
   { name: "Amarillo", value: "#ffee58" },
   { name: "Naranja", value: "#ffa726" },
@@ -70,7 +72,7 @@ export default function TagManager() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingTag, setEditingTag] = useState(null);
+  const [editingTag, setEditingTag] = useState("");
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState(TAG_COLORS[0].value);
   const [snackbar, setSnackbar] = useState({
@@ -92,7 +94,7 @@ export default function TagManager() {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}${API_ENDPOINTS.tags.list}`, {
+      const response = await fetch(`${API_URL}${API_ENDPOINTS.tags.list}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -100,6 +102,12 @@ export default function TagManager() {
       });
 
       if (!response.ok) {
+        const text = await response.text();
+        console.error(
+          "❌ Error al cargar las etiquetas:",
+          response.status,
+          text
+        );
         throw new Error("Error al cargar las etiquetas");
       }
 
@@ -159,7 +167,7 @@ export default function TagManager() {
       if (editingTag) {
         // Actualizar etiqueta existente
         const response = await fetch(
-          `${API_BASE}${API_ENDPOINTS.tags.update(editingTag.id)}`,
+          `${API_URL}${API_ENDPOINTS.tags.update(editingTag.id)}`,
           {
             method: "PUT",
             headers: {
@@ -193,22 +201,20 @@ export default function TagManager() {
         showSnackbar("Etiqueta actualizada correctamente");
       } else {
         // Crear nueva etiqueta
-        const response = await fetch(
-          `${API_BASE}${API_ENDPOINTS.tags.create}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name: tagName,
-              color: tagColor,
-            }),
-          }
-        );
+        const response = await fetch(`${API_URL}${API_ENDPOINTS.tags.create}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: tagName,
+            color: tagColor,
+          }),
+        });
 
         if (!response.ok) {
-          throw new Error("Error al crear la etiqueta");
+          console.log("CREACION DE TAGGG", response);
+          throw new Error("Error al crear la etiquetaaaaaaa");
         }
 
         const result = await response.json();
@@ -230,7 +236,7 @@ export default function TagManager() {
       setTagName("");
       setTagColor(TAG_COLORS[0].value);
     } catch (error) {
-      console.error("Error al guardar etiqueta:", error);
+      console.error("Error al guardar etiquetaaaaaaa:", error);
       showSnackbar(error.message || "Error al guardar la etiqueta", "error");
     }
   };
@@ -243,7 +249,7 @@ export default function TagManager() {
 
     try {
       const response = await fetch(
-        `${API_BASE}${API_ENDPOINTS.tags.delete(tagId)}`,
+        `${API_URL}${API_ENDPOINTS.tags.delete(tagId)}`,
         {
           method: "DELETE",
           headers: {

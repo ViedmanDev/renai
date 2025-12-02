@@ -18,6 +18,8 @@ import {
   CircularProgress,
   Collapse,
   Tooltip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -38,7 +40,6 @@ import { useProjects } from "@/contexts/ProjectContext";
 import DetailFieldsSidebar from "@/components/DetailFieldsSidebar";
 import DetailConfigModal from "@/components/DetailConfigModal";
 import AdminDrawer from "@/components/AdminDrawer";
-import TaskManager from "@/components/TaskManager";
 import ProjectPrivacySettings from "@/components/ProjectPrivacySettings";
 import ProjectCollaborators from "@/components/ProjectCollaborators";
 import ProjectPrivacyBadge from "@/components/ProjectPrivacyBadge";
@@ -56,11 +57,13 @@ import CreateDetailModal from "@/components/CreateDetailModal";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ProjectTasks from "@/components/ProjectTasks";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 
 export default function ProjectCanvasPage() {
+  const [openProjectTasks, setOpenProjectTasks] = useState(false);
   const router = useRouter();
   const params = useParams();
   const { user, loading } = useAuth();
@@ -72,6 +75,12 @@ export default function ProjectCanvasPage() {
     updateProject,
     deleteProject,
   } = useProjects();
+  // Estados para notificaciones
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -528,12 +537,29 @@ export default function ProjectCanvasPage() {
     return configured?.fieldName || detail.fieldName || "Sin configurar";
   };
 
-  const handleSaveProjectName = () => {
+  const handleSaveProjectName = async () => {
     const newName = projectName.trim();
     if (!currentProject || !newName) return;
 
-    handleEditProject({ name: newName });
+    if (newName === currentProject.name) {
+      setIsEditingProjectName(false);
+      return;
+    }
+
+    // Confirmar cambio
+    if (!confirm(`¿Guardar el nuevo nombre "${newName}"?`)) {
+      return;
+    }
+
+    await handleEditProject({ name: newName });
     setIsEditingProjectName(false);
+
+    // Mostrar notificación de éxito
+    setSnackbar({
+      open: true,
+      message: "Nombre actualizado correctamente",
+      severity: "success",
+    });
   };
 
   const handleCancelEditProjectName = () => {
@@ -541,12 +567,29 @@ export default function ProjectCanvasPage() {
     setIsEditingProjectName(false);
   };
 
-  const handleSaveProjectDescription = () => {
+  const handleSaveProjectDescription = async () => {
     const newDescription = projectDescription.trim();
     if (!currentProject) return;
 
-    handleEditProject({ description: newDescription });
+    if (newDescription === currentProject.description) {
+      setIsEditingDescription(false);
+      return;
+    }
+
+    // Confirmar cambio
+    if (!confirm(`¿Guardar la nueva descripción?`)) {
+      return;
+    }
+
+    await handleEditProject({ description: newDescription });
     setIsEditingDescription(false);
+
+    // Mostrar notificación de éxito
+    setSnackbar({
+      open: true,
+      message: "Descripción actualizada correctamente",
+      severity: "success",
+    });
   };
 
   const handleCancelEditProjectDescription = () => {
@@ -602,47 +645,71 @@ export default function ProjectCanvasPage() {
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (
-      !confirm(
-        "¿Estás seguro de eliminar este proyecto? Esta acción no se puede deshacer."
-      )
-    ) {
-      return;
-    }
+const handleDeleteProject = async () => {
+  const projectName = currentProject?.name || "este proyecto";
+  
+  if (
+    !confirm(
+      `¿Estás seguro de eliminar "${projectName}"?\n\nEsta acción no se puede deshacer.`
+    )
+  ) {
+    return;
+  }
 
-    const projectId = currentProject?._id || currentProject?.id;
+  const projectId = currentProject?._id || currentProject?.id;
 
-    if (!projectId || projectId === "undefined") {
-      console.error("❌ ID inválido para eliminar:", projectId);
-      alert("Error: No se pudo identificar el proyecto");
-      return;
-    }
+  if (!projectId || projectId === "undefined") {
+    console.error("❌ ID inválido para eliminar:", projectId);
+    setSnackbar({
+      open: true,
+      message: "Error: No se pudo identificar el proyecto",
+      severity: "error",
+    });
+    return;
+  }
 
-    console.log("🗑️ Eliminando proyecto:", projectId);
+  console.log("🗑️ Eliminando proyecto:", projectId);
 
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/projects/${projectId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/projects/${projectId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      console.log("✅ Proyecto eliminado correctamente");
+      deleteProject(projectId);
+      
+      // Mostrar notificación y redirigir
+      setSnackbar({
+        open: true,
+        message: "Proyecto eliminado correctamente",
+        severity: "success",
       });
-
-      if (res.ok) {
-        console.log("✅ Proyecto eliminado correctamente");
-        deleteProject(projectId); // Actualizar contexto
+      
+      setTimeout(() => {
         router.push("/");
-      } else {
-        const data = await res.json();
-        alert("Error al eliminar: " + (data.message || "Error desconocido"));
-      }
-    } catch (error) {
-      console.error("❌ Error eliminando proyecto:", error);
-      alert("Error de conexión al eliminar el proyecto");
+      }, 1000);
+    } else {
+      const data = await res.json();
+      setSnackbar({
+        open: true,
+        message: "Error al eliminar: " + (data.message || "Error desconocido"),
+        severity: "error",
+      });
     }
-  };
+  } catch (error) {
+    console.error("❌ Error eliminando proyecto:", error);
+    setSnackbar({
+      open: true,
+      message: "Error de conexión al eliminar el proyecto",
+      severity: "error",
+    });
+  }
+};
 
   const getFilteredDetails = () => {
     if (!flagSearch.trim()) {
@@ -705,12 +772,12 @@ export default function ProjectCanvasPage() {
             flexWrap: { xs: "wrap", sm: "nowrap" },
           }}
         >
-          <IconButton
+          {/* <IconButton
             onClick={() => router.push(`/project/${params.id}/details`)}
             size="small"
           >
             <ChevronLeftIcon />
-          </IconButton>
+          </IconButton> */}
           <IconButton
             size="small"
             onClick={() => setOpenAdminDrawer(true)}
@@ -724,9 +791,23 @@ export default function ProjectCanvasPage() {
             size="small"
           >
             <HomeIcon />
+          
           </IconButton>
+          {/*
+          <IconButton
+            onClick={() => setOpenProjectTasks(true)}
+            title="Tareas del proyecto (BD)"
+            size="small"
+            sx={{
+              bgcolor: "#f5f5f5",
+              "&:hover": { bgcolor: "#e0e0e0" },
+            }}
+          >
+            <AssignmentIcon fontSize="small" />
+          </IconButton>
+          */}
 
-          {/* Botones de privacidad y colaboradores */}
+          {/* Botones de privacidad y colaboradores */} 
           <IconButton
             onClick={() => setOpenPrivacySettings(true)}
             title="Configuración de privacidad"
@@ -738,7 +819,6 @@ export default function ProjectCanvasPage() {
           >
             <LockIcon fontSize="small" />
           </IconButton>
-
           <IconButton
             onClick={() => setOpenCollaborators(true)}
             title="Gestionar colaboradores"
@@ -785,7 +865,7 @@ export default function ProjectCanvasPage() {
               size="small"
             />
           </Box>
-
+    
           <Typography
             variant="body1"
             sx={{
@@ -796,6 +876,7 @@ export default function ProjectCanvasPage() {
             {currentProject?.name}
           </Typography>
           <Button
+            onClick={() => alert("exportaaaar")}
             variant="contained"
             sx={{
               bgcolor: "#2c2c2c",
@@ -833,13 +914,167 @@ export default function ProjectCanvasPage() {
           flexGrow: 1,
         }}
       >
-        <DetailFieldsSidebar
-          details={selectedDetails}
-          onDetailClick={handleDetailClick}
-          selectedDetailId={selectedDetail?.id}
-          onReorderDetails={handleReorderDetailsFromSidebar}
-        />
+      {/* ✅ NUEVO: Sidebar Izquierdo - Imagen de Portada */}
+  <Box
+    sx={{
+      width: { xs: "100%", md: 240 },
+      borderRight: { md: "1px solid #e0e0e0" },
+      bgcolor: "white",
+      p: 2,
+      display: "flex",
+      flexDirection: "column",
+      gap: 2,
+    }}
+  >
+    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: "text.secondary" }}>
+      📸 Portada del Proyecto
+    </Typography>
 
+    {currentProject?.coverImage ? (
+      <Box sx={{ position: "relative" }}>
+        <Box
+          component="img"
+          src={currentProject.coverImage}
+          alt="Portada del proyecto"
+          sx={{
+            width: "100%",
+            height: 240,
+            objectFit: "cover",
+            borderRadius: 2,
+            border: "2px solid #e0e0e0",
+          }}
+        />
+        {/* Botones de acción sobre la imagen */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  display: "flex",
+                  gap: 0.5,
+                }}
+              >
+                <Tooltip title="Cambiar imagen">
+                  <IconButton
+                    component="label"
+                    size="small"
+                    sx={{
+                      bgcolor: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+                    }}
+                  >
+                    <EditIcon fontSize="small" />
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            setSnackbar({
+                              open: true,
+                              message: "La imagen debe ser menor a 5MB",
+                              severity: "error",
+                            });
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            handleEditProject({ coverImage: reader.result });
+                            setSnackbar({
+                              open: true,
+                              message: "Imagen actualizada correctamente",
+                              severity: "success",
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Eliminar imagen">
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      if (confirm("¿Eliminar la imagen de portada?")) {
+                        handleEditProject({ coverImage: null });
+                        setSnackbar({
+                          open: true,
+                          message: "Imagen eliminada correctamente",
+                          severity: "success",
+                        });
+                      }
+                    }}
+                    sx={{
+                      bgcolor: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+          ) : (
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<AddIcon />}
+              sx={{
+                width: "100%",
+                height: 240,
+                border: "2px dashed #bdbdbd",
+                borderRadius: 2,
+                textTransform: "none",
+                color: "text.secondary",
+                flexDirection: "column",
+                gap: 1,
+                "&:hover": {
+                  border: "2px dashed #757575",
+                  bgcolor: "#f5f5f5",
+                },
+              }}
+            >
+              Agregar portada
+              <Typography variant="caption" sx={{ color: "text.disabled" }}>
+                (Opcional)
+              </Typography>
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                      setSnackbar({
+                        open: true,
+                        message: "La imagen debe ser menor a 5MB",
+                        severity: "error",
+                      });
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      handleEditProject({ coverImage: reader.result });
+                      setSnackbar({
+                        open: true,
+                        message: "Imagen agregada correctamente",
+                        severity: "success",
+                      });
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </Button>
+          )}
+        </Box>
         {/* Canvas Area */}
         <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 4 } }}>
           <Container maxWidth="lg">
@@ -1739,16 +1974,18 @@ export default function ProjectCanvasPage() {
       <AdminDrawer
         open={openAdminDrawer}
         onClose={() => setOpenAdminDrawer(false)}
+        projectId={currentProject?._id || currentProject?.id}
       />
 
       {/* Task Manager Dialog */}
+      {/*
+
       <Dialog
         open={openTaskManager}
         onClose={() => setOpenTaskManager(false)}
         maxWidth="md"
         fullWidth
       >
-        {/* <DialogTitle>Tareas del Proyecto</DialogTitle> */}
         <DialogContent>
           <TaskManager projectId={currentProject?.id} />
         </DialogContent>
@@ -1756,6 +1993,7 @@ export default function ProjectCanvasPage() {
           <Button onClick={() => setOpenTaskManager(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+      */}
 
       {/* Modales de privacidad y colaboradores */}
       <ProjectPrivacySettings
@@ -1941,6 +2179,42 @@ export default function ProjectCanvasPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* Task Manager Dialog */}
+      <Dialog
+        open={openTaskManager}
+        onClose={() => setOpenTaskManager(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { height: "85vh" },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          📋 Tareas del Proyecto
+          <IconButton onClick={() => setOpenTaskManager(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+          <ProjectTasks projectId={currentProject?._id || currentProject?.id} />
+        </DialogContent>
+      </Dialog>
+      {/* Snackbar de notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

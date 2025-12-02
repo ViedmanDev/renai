@@ -9,6 +9,7 @@ import { FoldersModule } from './folders/folders.module';
 import { TagsModule } from './tags/tags.module';
 import { FieldsModule } from './fields/fields.module';
 import { GroupsModule } from './groups/groups.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { GroupsModule } from './groups/groups.module';
     TagsModule,
     FieldsModule,
     GroupsModule,
+    TasksModule,
   ],
   providers: [MailerService],
 })

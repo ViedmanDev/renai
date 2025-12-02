@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * COMPONENTE: AdminDrawer
@@ -20,7 +20,7 @@
  * 3. Agregar ruta en el switch de renderContent
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
 import {
   Drawer,
   Box,
@@ -32,25 +32,31 @@ import {
   Typography,
   Divider,
   IconButton,
-} from "@mui/material"
-import CloseIcon from "@mui/icons-material/Close"
-import LabelIcon from "@mui/icons-material/Label"
-import SettingsIcon from "@mui/icons-material/Settings"
-import TableChartIcon from "@mui/icons-material/TableChart"
-import ExtensionIcon from "@mui/icons-material/Extension"
-import TagManager from "./TagManager"
-import ParameterManager from "./ParameterManager"
-import "./AdminDrawer.css"
+  Chip,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import LabelIcon from "@mui/icons-material/Label";
+import SettingsIcon from "@mui/icons-material/Settings";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import ExtensionIcon from "@mui/icons-material/Extension";
+import TagManager from "./TagManager";
+import ParameterManager from "./ParameterManager";
+import "./AdminDrawer.css";
 
 export default function AdminDrawer({ open, onClose }) {
-  const [selectedOption, setSelectedOption] = useState("tags")
+  const [selectedOption, setSelectedOption] = useState("tags");
+  const [tagsPreview, setTagsPreview] = useState([]);
 
   const menuItems = [
     { id: "tags", label: "Gestión de Etiquetas", icon: <LabelIcon /> },
-    { id: "parameters", label: "Gestión de Parámetros", icon: <SettingsIcon /> },
-    { id: "detailTypes", label: "Tipos de Detalles", icon: <ExtensionIcon /> },
-    { id: "tables", label: "Tablas Dinámicas", icon: <TableChartIcon /> },
-  ]
+    // {
+    //   id: "parameters",
+    //   label: "Gestión de Parámetros",
+    //   icon: <SettingsIcon />,
+    // },
+    // { id: "detailTypes", label: "Tipos de Detalles", icon: <ExtensionIcon /> },
+    // { id: "tables", label: "Tablas Dinámicas", icon: <TableChartIcon /> },
+  ];
 
   /**
    * Renderiza el contenido según la opción seleccionada
@@ -59,10 +65,10 @@ export default function AdminDrawer({ open, onClose }) {
   const renderContent = () => {
     switch (selectedOption) {
       case "tags":
-        return <TagManager />
-      case "parameters":
-        return <ParameterManager />
-      case "detailTypes":
+        return <TagManager />;
+        // case "parameters":
+        //   return <ParameterManager />
+        // case "detailTypes":
         return (
           <Box className="admin-drawer__content-placeholder">
             <Typography variant="h6">Gestión de Tipos de Detalles</Typography>
@@ -70,7 +76,7 @@ export default function AdminDrawer({ open, onClose }) {
               Aquí podrás crear y gestionar tipos de detalles personalizados
             </Typography>
           </Box>
-        )
+        );
       case "tables":
         return (
           <Box className="admin-drawer__content-placeholder">
@@ -79,14 +85,19 @@ export default function AdminDrawer({ open, onClose }) {
               Aquí podrás crear y gestionar tablas dinámicas para el sistema
             </Typography>
           </Box>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
-    <Drawer anchor="left" open={open} onClose={onClose} className="admin-drawer">
+    <Drawer
+      anchor="left"
+      open={open}
+      onClose={onClose}
+      className="admin-drawer"
+    >
       <Box className="admin-drawer__container">
         {/* Header */}
         <Box className="admin-drawer__header">
@@ -109,7 +120,9 @@ export default function AdminDrawer({ open, onClose }) {
                 onClick={() => setSelectedOption(item.id)}
                 className="admin-drawer__menu-item"
               >
-                <ListItemIcon className="admin-drawer__menu-icon">{item.icon}</ListItemIcon>
+                <ListItemIcon className="admin-drawer__menu-icon">
+                  {item.icon}
+                </ListItemIcon>
                 <ListItemText primary={item.label} />
               </ListItemButton>
             </ListItem>
@@ -122,5 +135,5 @@ export default function AdminDrawer({ open, onClose }) {
         <Box className="admin-drawer__content">{renderContent()}</Box>
       </Box>
     </Drawer>
-  )
+  );
 }
