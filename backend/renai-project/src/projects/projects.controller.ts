@@ -23,17 +23,36 @@ export class ProjectsController   {
 
   // Método auxiliar para extraer userId del token
   private getUserIdFromToken(authHeader: string): string {
+    console.log('🔐 Auth header recibido:', authHeader);
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ No hay header de autorización');
       throw new UnauthorizedException('Token no proporcionado');
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'SECRET_KEY',
-    ) as { id: string; email: string };
+    console.log('🎫 Token extraído (primeros 20 chars):', token.substring(0, 20) + '...');
 
-    return decoded.id;
+    try {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || 'SECRET_KEY',
+      ) as { id: string; email: string };
+
+      console.log('✅ Token decodificado exitosamente');
+      console.log('📋 Payload completo:', decoded);
+      console.log('👤 User ID extraído:', decoded.id);
+
+      if (!decoded.id) {
+        console.error('❌ El token no contiene campo "id"');
+        throw new UnauthorizedException('Token inválido: falta campo id');
+      }
+
+      return decoded.id;
+    } catch (error) {
+      console.error('❌ Error al verificar token:', error.message);
+      throw new UnauthorizedException('Token inválido');
+    }
   }
 
   /**
@@ -121,12 +140,23 @@ export class ProjectsController   {
     @Headers('authorization') auth: string,
     @Body() updates: any,
   ) {
+    console.log('📬 PATCH /projects/:id');
+    console.log('📝 Project ID:', id);
+    console.log('📦 Updates:', Object.keys(updates));
+
     const userId = this.getUserIdFromToken(auth);
+    console.log('👤 User ID obtenido:', userId);
 
     // Verificar permiso de edición
+    console.log('🔐 Verificando permisos de edición...');
     await this.permissionsService.requireEdit(id, userId);
+    console.log('✅ Permisos verificados');
 
-    return this.projectsService.update(id, updates);
+    console.log('💾 Actualizando proyecto...');
+    const result = await this.projectsService.update(id, updates);
+    console.log('✅ Proyecto actualizado exitosamente');
+
+    return result;
   }
 
   /**

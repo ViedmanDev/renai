@@ -34,6 +34,7 @@
 
 import { createContext, useContext, useState } from "react"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const ProjectContext = createContext()
 
 export function ProjectProvider({ children }) {
@@ -56,27 +57,50 @@ export function ProjectProvider({ children }) {
     return newProject
   }
 
-  const updateProject = (projectId, updates) => {
+  const updateProject = async (projectId, updates) => {
     console.log('🔄 Actualizando proyecto:', projectId, updates);
 
-    // Actualizar en la lista de proyectos
-    setProjects(prevProjects =>
-      prevProjects.map((p) =>
-        (p.id === projectId || p._id === projectId)
-          ? { ...p, ...updates }
-          : p
-      )
-    );
+    try {
+      // ✅ 1. Actualizar en backend
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
 
-    //Actualizar currentProject si es el mismo
-    setCurrentProject(prevCurrent => {
-      if (prevCurrent && (prevCurrent.id === projectId || prevCurrent._id === projectId)) {
-        const updated = { ...prevCurrent, ...updates };
-        console.log(' currentProject actualizado:', updated);
-        return updated;
+      if (res.ok) {
+        const updatedProject = await res.json();
+        console.log("✅ Proyecto actualizado en BD:", updatedProject);
+
+        // ✅ 2. Actualizar en estado local
+        setProjects(prevProjects =>
+          prevProjects.map((p) =>
+            (p.id === projectId || p._id === projectId)
+              ? { ...p, ...updates }
+              : p
+          )
+        );
+
+        // ✅ 3. Actualizar currentProject si es el mismo
+        setCurrentProject(prevCurrent => {
+          if (prevCurrent && (prevCurrent.id === projectId || prevCurrent._id === projectId)) {
+            return { ...prevCurrent, ...updates };
+          }
+          return prevCurrent;
+        });
+
+        return updatedProject;
+      } else {
+        const error = await res.json();
+        console.error("❌ Error actualizando proyecto:", error);
       }
-      return prevCurrent;
-    });
+    } catch (error) {
+      console.error("❌ Error de red:", error);
+    }
   };
 
   const addDetailToProject = (projectId, detail) => {
