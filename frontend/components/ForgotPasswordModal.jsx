@@ -32,7 +32,7 @@ export default function ForgotPasswordModal({ open, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const emailError = validateEmail(email);
     if (emailError) {
       setError(emailError);
@@ -54,7 +54,7 @@ export default function ForgotPasswordModal({ open, onClose }) {
       if (res.ok) {
         setSuccess(true);
         setEmail("");
-        
+
         // Mostrar URL en consola (solo desarrollo)
         if (data.resetUrl) {
           console.log("🔗 URL de recuperación:", data.resetUrl);
@@ -90,7 +90,14 @@ export default function ForgotPasswordModal({ open, onClose }) {
         },
       }}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h6">Recuperar contraseña</Typography>
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -104,9 +111,9 @@ export default function ForgotPasswordModal({ open, onClose }) {
             <Typography variant="h6" gutterBottom>
               ¡Correo enviado!
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Revisa tu consola del navegador para obtener el enlace de recuperación (modo desarrollo).
-            </Typography>
+            {/* <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Revisa tu consola del navegador para obtener el enlace de recuperación.
+            </Typography> */}
             <Typography variant="caption" color="text.secondary">
               El enlace expira en 1 hora.
             </Typography>
@@ -126,7 +133,8 @@ export default function ForgotPasswordModal({ open, onClose }) {
         ) : (
           <form onSubmit={handleSubmit}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.
+              Ingresa tu email y te enviaremos un enlace para restablecer tu
+              contraseña.
             </Typography>
 
             {error && (
