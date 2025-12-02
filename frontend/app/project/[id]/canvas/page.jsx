@@ -280,16 +280,28 @@ export default function ProjectCanvasPage() {
       return;
     }
 
+    // si no hay índice seleccionado, no hacemos nada
+    if (elementToEditIndex === null) {
+      console.error("No hay elemento seleccionado para editar");
+      return;
+    }
+
     const newElements = [...elements];
-    newElements[editingElementIndex] = {
-      ...newElements[editingElementIndex],
-      name: editingElementName,
-      description: editingElementDescription,
+    newElements[elementToEditIndex] = {
+      ...newElements[elementToEditIndex],
+      name: editElementName,
+      description: editElementDescription,
     };
+
     setElements(newElements);
     updateProject(projectId, { elements: newElements });
-    setEditingElementIndex(null);
+
+    // cerrar modal y limpiar índice
+    setOpenEditElement(false);
+    setElementToEditIndex(null);
   };
+
+  // editar sub elementos
   // editar sub elementos
   const handleSaveSubElementEdit = () => {
     const projectId = currentProject?._id || currentProject?.id;
@@ -299,17 +311,31 @@ export default function ProjectCanvasPage() {
       return;
     }
 
+    const { elem, sub } = editSubElemIndices;
+
+    // Validaciones por si acaso
+    if (elem === null || sub === null) {
+      console.error("No hay sub-elemento seleccionado para editar", {
+        elem,
+        sub,
+      });
+      return;
+    }
+
     const newElements = [...elements];
-    newElements[editingSubElementParent].subElements[editingSubElementIndex] = {
-      ...newElements[editingSubElementParent].subElements[
-        editingSubElementIndex
-      ],
-      name: editingSubElementName,
-      description: editingSubElementDescription,
+
+    newElements[elem].subElements[sub] = {
+      ...newElements[elem].subElements[sub],
+      name: editSubElemName,
+      description: editSubElemDescription,
     };
+
     setElements(newElements);
     updateProject(projectId, { elements: newElements });
-    setEditingSubElementIndex(null);
+
+    // cerrar modal y limpiar índices
+    setOpenEditSubElement(false);
+    setEditSubElemIndices({ elem: null, sub: null });
   };
 
   // Eliminar ELEMENTO
@@ -371,20 +397,20 @@ export default function ProjectCanvasPage() {
       updateProject(projectId, { elements: newElements });
     }
   };
-const handleDetailClick = (detail, elementIndex, subElementIndex) => {
-  console.log('🔍 Detalle clickeado:', detail);
-  setSelectedDetail(detail);
-  setSelectedElementIndex(elementIndex);
-  setSelectedSubElementIndex(subElementIndex);
-  setOpenConfigModal(true);
-};
+  const handleDetailClick = (detail, elementIndex, subElementIndex) => {
+    console.log("🔍 Detalle clickeado:", detail);
+    setSelectedDetail(detail);
+    setSelectedElementIndex(elementIndex);
+    setSelectedSubElementIndex(subElementIndex);
+    setOpenConfigModal(true);
+  };
 
   //Función para guardar la configuración del detalle
   const handleSaveDetailConfig = (updatedDetail) => {
     const projectId = currentProject?._id || currentProject?.id;
 
     if (!projectId) {
-      console.error('❌ No hay projectId disponible');
+      console.error("❌ No hay projectId disponible");
       setSnackbar({
         open: true,
         message: "Error: No se pudo identificar el proyecto",
@@ -394,18 +420,15 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
       return;
     }
 
-    console.log('💾 Guardando configuración de detalle:', updatedDetail);
-    console.log('📍 Índices guardados:', {
+    console.log("💾 Guardando configuración de detalle:", updatedDetail);
+    console.log("📍 Índices guardados:", {
       selectedElementIndex,
       selectedSubElementIndex,
     });
 
     // ✅ Validar que los índices sean válidos ANTES de proceder
-    if (
-      selectedElementIndex === null ||
-      selectedSubElementIndex === null
-    ) {
-      console.error('❌ Índices son null:', {
+    if (selectedElementIndex === null || selectedSubElementIndex === null) {
+      console.error("❌ Índices son null:", {
         selectedElementIndex,
         selectedSubElementIndex,
       });
@@ -419,7 +442,10 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
     }
 
     if (!elements[selectedElementIndex]) {
-      console.error('❌ Elemento no encontrado en índice:', selectedElementIndex);
+      console.error(
+        "❌ Elemento no encontrado en índice:",
+        selectedElementIndex
+      );
       setSnackbar({
         open: true,
         message: "Error: Elemento no encontrado",
@@ -430,7 +456,10 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
     }
 
     if (!elements[selectedElementIndex].subElements) {
-      console.error('❌ subElements no existe en elemento:', selectedElementIndex);
+      console.error(
+        "❌ subElements no existe en elemento:",
+        selectedElementIndex
+      );
       setSnackbar({
         open: true,
         message: "Error: Sub-elementos no encontrados",
@@ -441,7 +470,10 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
     }
 
     if (!elements[selectedElementIndex].subElements[selectedSubElementIndex]) {
-      console.error('❌ Sub-elemento no encontrado en índice:', selectedSubElementIndex);
+      console.error(
+        "❌ Sub-elemento no encontrado en índice:",
+        selectedSubElementIndex
+      );
       setSnackbar({
         open: true,
         message: "Error: Sub-elemento no encontrado",
@@ -460,11 +492,11 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
 
     if (detailIndex !== -1) {
       // Actualizar el detalle con la nueva configuración
-      newElements[selectedElementIndex].subElements[selectedSubElementIndex].details[
-        detailIndex
-      ] = updatedDetail;
+      newElements[selectedElementIndex].subElements[
+        selectedSubElementIndex
+      ].details[detailIndex] = updatedDetail;
 
-      console.log('📦 Elementos actualizados:', newElements);
+      console.log("📦 Elementos actualizados:", newElements);
 
       // Actualizar estado local
       setElements(newElements);
@@ -478,7 +510,7 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
         severity: "success",
       });
     } else {
-      console.error('❌ No se encontró el detalle para actualizar');
+      console.error("❌ No se encontró el detalle para actualizar");
       setSnackbar({
         open: true,
         message: "Error al actualizar el detalle",
@@ -1666,7 +1698,11 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
                                                     },
                                                   }}
                                                   onClick={() =>
-                                                    handleDetailClick(detail, elemIndex, subIndex)
+                                                    handleDetailClick(
+                                                      detail,
+                                                      elemIndex,
+                                                      subIndex
+                                                    )
                                                   }
                                                 >
                                                   {/* CABECERA DEL DETALLE */}
@@ -1786,7 +1822,7 @@ const handleDetailClick = (detail, elementIndex, subElementIndex) => {
                                                               }
                                                               sx={{
                                                                 bgcolor:
-                                                                flag.color,
+                                                                  flag.color,
                                                                 color: "white",
                                                                 height: 20,
                                                                 fontSize:
