@@ -16,7 +16,7 @@ async function bootstrap() {
 
   // Habilitar CORS para ambos puertos (frontend actual y nuevo)
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:4000'], // ← Ambos puertos
+    origin: ['https://renai-2ebd.onrender.com'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -26,8 +26,6 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`🚀 Backend corriendo en: http://localhost:${port}`);
-  console.log(
-    `📡 CORS habilitado para: http://localhost:3000 y http://localhost:4000`,
-  );
+  console.log(`📡 CORS habilitado para: https://renai-2ebd.onrender.com`);
 }
 bootstrap();
