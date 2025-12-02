@@ -1,5 +1,19 @@
-import { Controller, Post, Body } from '@nestjs/common';
+// auth.controller.ts
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Headers,
+  UnauthorizedException,
+  Req,
+  Res,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { AuthGuard } from '@nestjs/passport';
+import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -11,7 +25,72 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: { email: string; password: string }) {
-    return this.authService.register(body.email, body.password);
+  async register(
+    @Body() body: { name: string; email: string; password: string },
+  ) {
+    console.log('📬 POST /auth/register');
+    console.log('📦 Body:', {
+      name: body.name,
+      email: body.email,
+      password: body.password ? '***' : 'UNDEFINED'
+    });
+
+    return this.authService.register(body.name, body.email, body.password);
+  }
+
+  @Get('verify')
+  async verify(@Headers('authorization') auth: string) {
+    if (!auth || !auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+    const token = auth.split(' ')[1];
+    return this.authService.verifyToken(token);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Get('verify-reset-token')
+  async verifyResetToken(@Query('token') token: string) {
+    return this.authService.verifyResetToken(token);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // Inicia el flujo de OAuth con Google
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req, @Res() res) {
+    try {
+      const result = await this.authService.googleLogin(req.user);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/auth/google/success?token=${result.token}`);
+    } catch (error) {
+      console.error('Error en Google callback:', error);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/auth/login?error=google_auth_failed`);
+    }
+  }
+
+  @Post('set-password')
+  async setPassword(
+    @Headers('authorization') auth: string,
+    @Body() body: { password: string },
+  ) {
+    if (!auth || !auth.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+    const token = auth.split(' ')[1];
+    return this.authService.setPassword(token, body.password);
   }
 }
