@@ -61,6 +61,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ProjectTasks from "@/components/ProjectTasks";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import exportarProyectoExcel from "./exportExcel";
 
 export default function ProjectCanvasPage() {
   const [openProjectTasks, setOpenProjectTasks] = useState(false);
@@ -204,38 +205,62 @@ export default function ProjectCanvasPage() {
   };
 
   const handleCreateElement = (element) => {
+    //Usar _id del proyecto (MongoDB) en lugar de id
+    const projectId = currentProject?._id || currentProject?.id;
+
+    console.log("🆕 Creando elemento:", element);
+    console.log("📦 Proyecto ID:", projectId);
+    console.log("📦 currentProject completo:", currentProject);
+    console.log("📊 Elementos actuales:", elements);
+
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      setSnackbar({
+        open: true,
+        message: "Error: No se pudo identificar el proyecto",
+        severity: "error",
+      });
+      return;
+    }
+
     const newElements = [
       ...elements,
       { ...element, id: Date.now(), subElements: [] },
     ];
+
+    console.log("📦 Nuevos elementos:", newElements);
+
     setElements(newElements);
-    updateProject(currentProject.id, { elements: newElements });
+    updateProject(projectId, { elements: newElements });
   };
 
   const handleCreateSubElement = (subElement) => {
-    const newElements = [...elements];
-    if (!newElements[selectedElementIndex].subElements) {
-      newElements[selectedElementIndex].subElements = [];
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
     }
+
+    const newElements = [...elements];
     newElements[selectedElementIndex].subElements.push({
       ...subElement,
       id: Date.now(),
       details: [],
     });
     setElements(newElements);
-    updateProject(currentProject.id, { elements: newElements });
+    updateProject(projectId, { elements: newElements });
   };
 
   const handleCreateDetail = (detail) => {
-    const newElements = [...elements];
-    if (
-      !newElements[selectedElementIndex].subElements[selectedSubElementIndex]
-        .details
-    ) {
-      newElements[selectedElementIndex].subElements[
-        selectedSubElementIndex
-      ].details = [];
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
     }
+
+    const newElements = [...elements];
     newElements[selectedElementIndex].subElements[
       selectedSubElementIndex
     ].details.push({
@@ -243,113 +268,108 @@ export default function ProjectCanvasPage() {
       id: Date.now(),
     });
     setElements(newElements);
-    updateProject(currentProject.id, { elements: newElements });
+    updateProject(projectId, { elements: newElements });
   };
 
   //editar los elementos
   const handleSaveElementEdit = () => {
-    if (elementToEditIndex === null || !currentProject) return;
+    const projectId = currentProject?._id || currentProject?.id;
 
-    const projectId = currentProject._id || currentProject.id;
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
+    }
+
     const newElements = [...elements];
-
-    newElements[elementToEditIndex] = {
-      ...newElements[elementToEditIndex],
-      name: editElementName.trim(),
-      description: editElementDescription.trim(),
+    newElements[editingElementIndex] = {
+      ...newElements[editingElementIndex],
+      name: editingElementName,
+      description: editingElementDescription,
     };
-
     setElements(newElements);
     updateProject(projectId, { elements: newElements });
-
-    setOpenEditElement(false);
-    setElementToEditIndex(null);
+    setEditingElementIndex(null);
   };
-
   // editar sub elementos
   const handleSaveSubElementEdit = () => {
-    if (!editSubElemIndices || !currentProject) return;
-    const projectId = currentProject._id || currentProject.id;
-    const { elem, sub } = editSubElemIndices;
+    const projectId = currentProject?._id || currentProject?.id;
+
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
+    }
 
     const newElements = [...elements];
-    newElements[elem].subElements[sub] = {
-      ...newElements[elem].subElements[sub],
-      name: editSubElemName.trim(),
-      description: editSubElemDescription.trim(),
+    newElements[editingSubElementParent].subElements[editingSubElementIndex] = {
+      ...newElements[editingSubElementParent].subElements[
+        editingSubElementIndex
+      ],
+      name: editingSubElementName,
+      description: editingSubElementDescription,
     };
-
     setElements(newElements);
     updateProject(projectId, { elements: newElements });
-    setOpenEditSubElement(false);
-    setEditSubElemIndices({ elem: null, sub: null });
+    setEditingSubElementIndex(null);
   };
 
   // Eliminar ELEMENTO
   const handleDeleteElement = (elementId) => {
-    const ok = window.confirm("¿Eliminar este elemento y todo su contenido?");
-    if (!ok) return;
-
     const projectId = currentProject?._id || currentProject?.id;
 
-    setElements((prev) => {
-      const newElements = prev.filter((el) => el.id !== elementId);
-      if (projectId) {
-        updateProject(projectId, { elements: newElements });
-      }
-      return newElements;
-    });
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
+    }
+
+    if (confirm("¿Estás seguro de eliminar este elemento?")) {
+      const newElements = elements.filter((e) => e.id !== elementId);
+      setElements(newElements);
+      updateProject(projectId, { elements: newElements });
+    }
   };
 
   // Eliminar SUBELEMENTO
   const handleDeleteSubElement = (elementId, subElementId) => {
-    const ok = window.confirm("¿Eliminar este sub elemento y sus detalles?");
-    if (!ok) return;
-
     const projectId = currentProject?._id || currentProject?.id;
 
-    setElements((prev) => {
-      const newElements = prev.map((el) =>
-        el.id === elementId
-          ? {
-              ...el,
-              subElements: (el.subElements || []).filter(
-                (sub) => sub.id !== subElementId
-              ),
-            }
-          : el
-      );
+    if (!projectId) {
+      console.error("❌ No hay projectId disponible");
+      return;
+    }
 
-      if (projectId) {
-        updateProject(projectId, { elements: newElements });
-      }
-
-      return newElements;
-    });
+    if (confirm("¿Estás seguro de eliminar este sub-elemento?")) {
+      const newElements = [...elements];
+      const elementIndex = newElements.findIndex((e) => e.id === elementId);
+      newElements[elementIndex].subElements = newElements[
+        elementIndex
+      ].subElements.filter((s) => s.id !== subElementId);
+      setElements(newElements);
+      updateProject(projectId, { elements: newElements });
+    }
   };
 
   // Eliminar DETALLE
   const handleDeleteDetail = (elementId, subElementId, detailId) => {
-    const ok = window.confirm("¿Eliminar este detalle?");
-    if (!ok) return;
+    const projectId = currentProject?._id || currentProject?.id;
 
-    setElements((prev) =>
-      prev.map((el) =>
-        el.id === elementId
-          ? {
-              ...el,
-              subElements: el.subElements.map((sub) =>
-                sub.id === subElementId
-                  ? {
-                      ...sub,
-                      details: sub.details.filter((d) => d.id !== detailId),
-                    }
-                  : sub
-              ),
-            }
-          : el
-      )
-    );
+    if (!projectId) {
+      console.error("No hay projectId disponible");
+      return;
+    }
+
+    if (confirm("¿Estás seguro de eliminar este detalle?")) {
+      const newElements = [...elements];
+      const elementIndex = newElements.findIndex((e) => e.id === elementId);
+      const subElementIndex = newElements[elementIndex].subElements.findIndex(
+        (s) => s.id === subElementId
+      );
+      newElements[elementIndex].subElements[subElementIndex].details =
+        newElements[elementIndex].subElements[subElementIndex].details.filter(
+          (d) => d.id !== detailId
+        );
+      setElements(newElements);
+      updateProject(projectId, { elements: newElements });
+    }
   };
 
   const handleDetailClick = (detail) => {
@@ -645,71 +665,72 @@ export default function ProjectCanvasPage() {
     }
   };
 
-const handleDeleteProject = async () => {
-  const projectName = currentProject?.name || "este proyecto";
-  
-  if (
-    !confirm(
-      `¿Estás seguro de eliminar "${projectName}"?\n\nEsta acción no se puede deshacer.`
-    )
-  ) {
-    return;
-  }
+  const handleDeleteProject = async () => {
+    const projectName = currentProject?.name || "este proyecto";
 
-  const projectId = currentProject?._id || currentProject?.id;
+    if (
+      !confirm(
+        `¿Estás seguro de eliminar "${projectName}"?\n\nEsta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
 
-  if (!projectId || projectId === "undefined") {
-    console.error("❌ ID inválido para eliminar:", projectId);
-    setSnackbar({
-      open: true,
-      message: "Error: No se pudo identificar el proyecto",
-      severity: "error",
-    });
-    return;
-  }
+    const projectId = currentProject?._id || currentProject?.id;
 
-  console.log("🗑️ Eliminando proyecto:", projectId);
-
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/projects/${projectId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (res.ok) {
-      console.log("✅ Proyecto eliminado correctamente");
-      deleteProject(projectId);
-      
-      // Mostrar notificación y redirigir
+    if (!projectId || projectId === "undefined") {
+      console.error("❌ ID inválido para eliminar:", projectId);
       setSnackbar({
         open: true,
-        message: "Proyecto eliminado correctamente",
-        severity: "success",
+        message: "Error: No se pudo identificar el proyecto",
+        severity: "error",
       });
-      
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
-    } else {
-      const data = await res.json();
+      return;
+    }
+
+    console.log("🗑️ Eliminando proyecto:", projectId);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        console.log("✅ Proyecto eliminado correctamente");
+        deleteProject(projectId);
+
+        // Mostrar notificación y redirigir
+        setSnackbar({
+          open: true,
+          message: "Proyecto eliminado correctamente",
+          severity: "success",
+        });
+
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else {
+        const data = await res.json();
+        setSnackbar({
+          open: true,
+          message:
+            "Error al eliminar: " + (data.message || "Error desconocido"),
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error eliminando proyecto:", error);
       setSnackbar({
         open: true,
-        message: "Error al eliminar: " + (data.message || "Error desconocido"),
+        message: "Error de conexión al eliminar el proyecto",
         severity: "error",
       });
     }
-  } catch (error) {
-    console.error("❌ Error eliminando proyecto:", error);
-    setSnackbar({
-      open: true,
-      message: "Error de conexión al eliminar el proyecto",
-      severity: "error",
-    });
-  }
-};
+  };
 
   const getFilteredDetails = () => {
     if (!flagSearch.trim()) {
@@ -791,7 +812,6 @@ const handleDeleteProject = async () => {
             size="small"
           >
             <HomeIcon />
-          
           </IconButton>
           {/*
           <IconButton
@@ -807,7 +827,7 @@ const handleDeleteProject = async () => {
           </IconButton>
           */}
 
-          {/* Botones de privacidad y colaboradores */} 
+          {/* Botones de privacidad y colaboradores */}
           <IconButton
             onClick={() => setOpenPrivacySettings(true)}
             title="Configuración de privacidad"
@@ -865,7 +885,7 @@ const handleDeleteProject = async () => {
               size="small"
             />
           </Box>
-    
+
           <Typography
             variant="body1"
             sx={{
@@ -875,8 +895,10 @@ const handleDeleteProject = async () => {
           >
             {currentProject?.name}
           </Typography>
+
+          {/* usar boton para guardar datos como excel */}
           <Button
-            onClick={() => alert("exportaaaar")}
+            onClick={() => exportarProyectoExcel(currentProject)}
             variant="contained"
             sx={{
               bgcolor: "#2c2c2c",
@@ -890,6 +912,7 @@ const handleDeleteProject = async () => {
           >
             Exportar como
           </Button>
+
           <IconButton onClick={() => router.push("/profile")} sx={{ p: 0 }}>
             <Avatar
               key={user?._id || user?.email || "no-user"}
@@ -914,37 +937,41 @@ const handleDeleteProject = async () => {
           flexGrow: 1,
         }}
       >
-      {/* ✅ NUEVO: Sidebar Izquierdo - Imagen de Portada */}
-  <Box
-    sx={{
-      width: { xs: "100%", md: 240 },
-      borderRight: { md: "1px solid #e0e0e0" },
-      bgcolor: "white",
-      p: 2,
-      display: "flex",
-      flexDirection: "column",
-      gap: 2,
-    }}
-  >
-    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: "text.secondary" }}>
-      📸 Portada del Proyecto
-    </Typography>
-
-    {currentProject?.coverImage ? (
-      <Box sx={{ position: "relative" }}>
+        {/* ✅ NUEVO: Sidebar Izquierdo - Imagen de Portada */}
         <Box
-          component="img"
-          src={currentProject.coverImage}
-          alt="Portada del proyecto"
           sx={{
-            width: "100%",
-            height: 240,
-            objectFit: "cover",
-            borderRadius: 2,
-            border: "2px solid #e0e0e0",
+            width: { xs: "100%", md: 240 },
+            borderRight: { md: "1px solid #e0e0e0" },
+            bgcolor: "white",
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
           }}
-        />
-        {/* Botones de acción sobre la imagen */}
+        >
+          <Typography
+            variant="subtitle2"
+            fontWeight="bold"
+            sx={{ color: "text.secondary" }}
+          >
+            📸 Portada del Proyecto
+          </Typography>
+
+          {currentProject?.coverImage ? (
+            <Box sx={{ position: "relative" }}>
+              <Box
+                component="img"
+                src={currentProject.coverImage}
+                alt="Portada del proyecto"
+                sx={{
+                  width: "100%",
+                  height: 240,
+                  objectFit: "cover",
+                  borderRadius: 2,
+                  border: "2px solid #e0e0e0",
+                }}
+              />
+              {/* Botones de acción sobre la imagen */}
               <Box
                 sx={{
                   position: "absolute",
@@ -2189,13 +2216,19 @@ const handleDeleteProject = async () => {
           sx: { height: "85vh" },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           📋 Tareas del Proyecto
           <IconButton onClick={() => setOpenTaskManager(false)} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 0, overflow: 'hidden' }}>
+        <DialogContent sx={{ p: 0, overflow: "hidden" }}>
           <ProjectTasks projectId={currentProject?._id || currentProject?.id} />
         </DialogContent>
       </Dialog>

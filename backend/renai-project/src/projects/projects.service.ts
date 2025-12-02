@@ -111,15 +111,28 @@ export class ProjectsService {
    * Actualizar proyecto
    */
   async update(projectId: string, updates: Partial<Project>) {
-    const project = await this.projectModel.findByIdAndUpdate(
-      projectId,
-      { $set: updates },
-      { new: true, runValidators: true },
-    );
+    console.log('📝 Service: Actualizando proyecto:', projectId);
+    console.log('📦 Service: Updates recibidos:', JSON.stringify(updates, null, 2));
+    const project = await this.projectModel.findById(projectId);
 
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
+
+    // Actualizar campos uno por uno
+    Object.keys(updates).forEach(key => {
+      project[key] = updates[key];
+    });
+
+    // Si se actualiza elements, marcar como modificado
+    if (updates.elements) {
+      project.markModified('elements');
+      console.log('📦 Elementos actualizados:', JSON.stringify(updates.elements, null, 2));
+      console.log('✅ Service: Elements marcado como modificado');
+      console.log('📊 Service: Total elementos:', updates.elements.length);
+    }
+
+    await project.save();
 
     console.log('✅ Proyecto actualizado:', project.name);
     return project;

@@ -48,6 +48,30 @@ export interface ProjectDocument extends Document {
   lastAccessedAt?: Date;
   folderId: Types.ObjectId | null;
   order?: number;
+    elements: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    subElements: Array<{
+      id: number;
+      name: string;
+      description?: string;
+      details: Array<{
+        id: number;
+        name: string;
+        description?: string;
+        dataType: string;
+        currencyType?: string;
+        value?: string;
+        required?: boolean;
+        flags?: Array<{
+          id: string;
+          name: string;
+          color: string;
+        }>;
+      }>;
+    }>;
+  }>;
 
   //Métodos helper
   hasPermission(userId: string, requiredRole?: ProjectRole): boolean;
@@ -115,6 +139,58 @@ export class Project {
 
   @Prop({ type: Number, default: 0 })
   order?: number;
+
+  @Prop({
+    type: [{
+      id: Number,
+      name: String,
+      description: String,
+      subElements: [{
+        id: Number,
+        name: String,
+        description: String,
+        details: [{
+          id: Number,
+          name: String,
+          description: String,
+          dataType: String,
+          currencyType: String,
+          value: String,
+          required: Boolean,
+          flags: [{
+            id: String,
+            name: String,
+            color: String
+          }]
+        }]
+      }]
+    }],
+    default: []
+  })
+  elements: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    subElements: Array<{
+      id: number;
+      name: string;
+      description?: string;
+      details: Array<{
+        id: number;
+        name: string;
+        description?: string;
+        dataType: string;
+        currencyType?: string;
+        value?: string;
+        required?: boolean;
+        flags?: Array<{
+          id: string;
+          name: string;
+          color: string;
+        }>;
+      }>;
+    }>;
+  }>;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
