@@ -1,9 +1,15 @@
+// middleware.ts
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(req) {
+export function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
-  res.headers.set("Access-Control-Allow-Origin", "*");
+  // Permite que tu frontend haga requests
+  res.headers.set(
+    "Access-Control-Allow-Origin",
+    "https://renai-2ebd.onrender.com"
+  ); // tu frontend
   res.headers.set(
     "Access-Control-Allow-Methods",
     "GET,POST,PUT,PATCH,DELETE,OPTIONS"
@@ -13,6 +19,7 @@ export function middleware(req) {
     "Content-Type, Authorization"
   );
 
+  // Preflight request
   if (req.method === "OPTIONS") {
     return new NextResponse(null, { status: 200, headers: res.headers });
   }
@@ -20,6 +27,7 @@ export function middleware(req) {
   return res;
 }
 
+// Aplica solo a las rutas de auth
 export const config = {
   matcher: ["/auth/:path*"],
 };
