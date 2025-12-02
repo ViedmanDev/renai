@@ -772,12 +772,12 @@ const handleDeleteProject = async () => {
             flexWrap: { xs: "wrap", sm: "nowrap" },
           }}
         >
-          <IconButton
+          {/* <IconButton
             onClick={() => router.push(`/project/${params.id}/details`)}
             size="small"
           >
             <ChevronLeftIcon />
-          </IconButton>
+          </IconButton> */}
           <IconButton
             size="small"
             onClick={() => setOpenAdminDrawer(true)}
@@ -876,6 +876,7 @@ const handleDeleteProject = async () => {
             {currentProject?.name}
           </Typography>
           <Button
+            onClick={() => alert("exportaaaar")}
             variant="contained"
             sx={{
               bgcolor: "#2c2c2c",
@@ -1973,6 +1974,7 @@ const handleDeleteProject = async () => {
       <AdminDrawer
         open={openAdminDrawer}
         onClose={() => setOpenAdminDrawer(false)}
+        projectId={currentProject?._id || currentProject?.id}
       />
 
       {/* Task Manager Dialog */}

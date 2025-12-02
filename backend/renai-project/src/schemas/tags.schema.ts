@@ -18,7 +18,11 @@ export class Tag {
   @Prop({ default: true })
   isActive: boolean;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Project', required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Project',
+    required: false,
+  })
   projectId: string; // Relación con el proyecto
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
