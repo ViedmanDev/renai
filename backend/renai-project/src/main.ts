@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Habilitar validación global para los DTOs
+  // Validación global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -14,12 +14,19 @@ async function bootstrap() {
     }),
   );
 
-  // Habilitar CORS para ambos puertos (frontend actual y nuevo)
+  // ==========================
+  // CORS CONFIG (Render friendly)
+  // ==========================
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:4000'], // ← Ambos puertos
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: [
+      'https://renai-2ebd.onrender.com', // frontend
+      'http://localhost:3000', // local (opcional)
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    preflightContinue: false,
+    optionsSuccessStatus: 204, // IMPORTANTE para evitar el error 405 en Render
   });
 
   const port = process.env.PORT ?? 4000;
@@ -27,7 +34,8 @@ async function bootstrap() {
 
   console.log(`🚀 Backend corriendo en: http://localhost:${port}`);
   console.log(
-    `📡 CORS habilitado para: http://localhost:3000 y http://localhost:4000`,
+    `📡 CORS habilitado para el frontend: https://renai-2ebd.onrender.com`,
   );
 }
+
 bootstrap();

@@ -48,7 +48,7 @@ export default function AdminDrawer({ open, onClose }) {
   const [tagsPreview, setTagsPreview] = useState([]);
 
   const menuItems = [
-    { id: "tags", label: "Gestión de etiquetas", icon: <LabelIcon /> },
+    { id: "tags", label: "Gestión de banderas", icon: <LabelIcon /> },
     // {
     //   id: "parameters",
     //   label: "Gestión de Parámetros",
